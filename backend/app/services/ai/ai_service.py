@@ -9,6 +9,7 @@ from app.services.ai.claude_client import ClaudeClient
 from app.services.ai.prompts import (
     SYSTEM_PROMPT,
     FOLLOW_UP_SYSTEM_PROMPT,
+    INTERPRETATION_SCHEMA,
     build_interpretation_prompt,
 )
 from app.models.divine import Divine
@@ -48,8 +49,10 @@ class AIService:
             cards_data=cards_data,
         )
 
-        # 調用 Claude API
-        response = self.claude.generate_interpretation(SYSTEM_PROMPT, user_prompt)
+        # 調用 Claude API（結構化輸出保證回應為合法 JSON）
+        response = self.claude.generate_interpretation(
+            SYSTEM_PROMPT, user_prompt, output_schema=INTERPRETATION_SCHEMA
+        )
 
         # 解析 JSON 回應
         interpretation_data = self.claude.parse_json_response(response["content"])
@@ -65,20 +68,31 @@ class AIService:
         divine.interpreted_at = datetime.utcnow()
         self.db.commit()
 
-        # 建立對話記錄
-        conversation = Conversation(
-            divine_id=divine_id,
-            messages=[
-                {
-                    "role": "system",
-                    "content": response["content"],
-                    "timestamp": datetime.utcnow().isoformat(),
-                    "tokens": response["tokens"]["total"],
-                }
-            ],
-            total_tokens=response["tokens"]["total"],
+        # 建立或重設對話記錄（divine_id 有 unique 約束，重新解讀時必須沿用同一筆）
+        initial_message = {
+            "role": "assistant",
+            "content": response["content"],
+            "timestamp": datetime.utcnow().isoformat(),
+            "tokens": response["tokens"]["total"],
+        }
+
+        conversation = (
+            self.db.query(Conversation)
+            .filter(Conversation.divine_id == divine_id)
+            .first()
         )
-        self.db.add(conversation)
+
+        if conversation:
+            conversation.messages = [initial_message]
+            conversation.total_tokens = response["tokens"]["total"]
+        else:
+            conversation = Conversation(
+                divine_id=divine_id,
+                messages=[initial_message],
+                total_tokens=response["tokens"]["total"],
+            )
+            self.db.add(conversation)
+
         self.db.commit()
         self.db.refresh(conversation)
 
@@ -127,7 +141,7 @@ class AIService:
             # 解析關鍵字（假設儲存為 JSON 陣列字串）
             try:
                 keywords = json.loads(keywords_str)
-            except:
+            except (json.JSONDecodeError, TypeError):
                 keywords = []
 
             cards_data.append(
@@ -196,8 +210,10 @@ class AIService:
             .first()
         )
 
-        # 準備對話歷史
-        messages = self._prepare_conversation_messages(conversation, user_message)
+        # 準備對話歷史（包含原始占卜脈絡與初始解讀）
+        messages = self._prepare_conversation_messages(
+            conversation, divine, user_message
+        )
 
         # 調用 Claude API
         response = self.claude.continue_conversation(
@@ -238,13 +254,17 @@ class AIService:
         }
 
     def _prepare_conversation_messages(
-        self, conversation: Conversation, user_message: str
+        self, conversation: Conversation, divine: Divine, user_message: str
     ) -> list:
         """
         準備對話訊息列表
 
+        追問時必須讓模型看到完整脈絡：
+        原始占卜資訊（user）→ 初始解讀（assistant）→ 後續追問往返 → 新訊息
+
         Args:
             conversation: 對話記錄
+            divine: 占卜記錄（用於重建原始占卜脈絡）
             user_message: 新的用戶訊息
 
         Returns:
@@ -252,8 +272,24 @@ class AIService:
         """
         messages = []
 
-        # 跳過第一條 system 訊息（初始解讀）
-        for msg in conversation.messages[1:]:
+        # 重建原始占卜的 user prompt，讓追問擁有牌陣與問題脈絡
+        if divine:
+            cards_data = self._prepare_cards_data(divine.spread_data)
+            original_prompt = build_interpretation_prompt(
+                question=divine.question_text,
+                spread_type=divine.spread_type,
+                cards_data=cards_data,
+            )
+            messages.append({"role": "user", "content": original_prompt})
+
+        stored = conversation.messages or []
+
+        # 第一條是初始解讀（新資料為 assistant；舊資料曾以 system 儲存）
+        if stored:
+            messages.append({"role": "assistant", "content": stored[0]["content"]})
+
+        # 後續的追問往返
+        for msg in stored[1:]:
             if msg["role"] in ["user", "assistant"]:
                 messages.append({"role": msg["role"], "content": msg["content"]})
 

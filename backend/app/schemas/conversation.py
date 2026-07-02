@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 
 
@@ -44,6 +44,3 @@ class MessageResponse(BaseModel):
     conversation_id: str
     message: Message
     tokens_used: int
-
-
-from typing import Optional

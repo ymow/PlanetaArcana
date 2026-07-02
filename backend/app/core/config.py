@@ -27,11 +27,11 @@ class Settings(BaseSettings):
         """將 CORS_ORIGINS 字串轉換為列表"""
         try:
             return json.loads(self.CORS_ORIGINS)
-        except:
+        except (json.JSONDecodeError, TypeError):
             return ["http://localhost:5173"]
 
     # AI Settings
-    AI_MODEL: str = "claude-sonnet-4-20250514"
+    AI_MODEL: str = "claude-sonnet-4-6"
     AI_MAX_TOKENS: int = 2000
     AI_TEMPERATURE: float = 0.7
 

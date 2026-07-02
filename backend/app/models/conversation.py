@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, Integer, DateTime, JSON, ForeignKey
+from sqlalchemy.ext.mutable import MutableList
 from datetime import datetime
 import uuid
 from app.db.database import Base
@@ -15,7 +16,8 @@ class Conversation(Base):
     divine_id = Column(String(36), ForeignKey("divines.id"), unique=True, nullable=False)
 
     # 對話訊息（JSON 陣列）
-    messages = Column(JSON, nullable=False, default=list)
+    # MutableList 讓 SQLAlchemy 能偵測 append 等就地修改，否則 commit 不會寫入
+    messages = Column(MutableList.as_mutable(JSON), nullable=False, default=list)
     # 格式：[{"role": "system/user/assistant", "content": "...", "timestamp": "...", "tokens": 123}]
 
     # Token 使用統計

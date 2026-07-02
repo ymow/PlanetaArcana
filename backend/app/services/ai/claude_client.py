@@ -16,7 +16,7 @@ class ClaudeClient:
         self.temperature = settings.AI_TEMPERATURE
 
     def generate_interpretation(
-        self, system_prompt: str, user_prompt: str
+        self, system_prompt: str, user_prompt: str, output_schema: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """
         生成塔羅解讀
@@ -24,6 +24,7 @@ class ClaudeClient:
         Args:
             system_prompt: System Prompt
             user_prompt: User Prompt
+            output_schema: JSON Schema（提供時透過結構化輸出保證回應為合法 JSON）
 
         Returns:
             {
@@ -36,12 +37,19 @@ class ClaudeClient:
             }
         """
         try:
+            extra_params = {}
+            if output_schema:
+                extra_params["output_config"] = {
+                    "format": {"type": "json_schema", "schema": output_schema}
+                }
+
             response = self.client.messages.create(
                 model=self.model,
                 max_tokens=self.max_tokens,
                 temperature=self.temperature,
                 system=system_prompt,
                 messages=[{"role": "user", "content": user_prompt}],
+                **extra_params,
             )
 
             # 提取回應內容

@@ -23,6 +23,39 @@ SYSTEM_PROMPT = """你是一位專業的偉特塔羅解讀師,擁有深厚的塔
 你使用繁體中文(台灣)回覆。"""
 
 
+# 結構化輸出 Schema — 透過 output_config.format 保證 API 回傳合法 JSON
+INTERPRETATION_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "overall_summary": {
+            "type": "string",
+            "description": "整體解讀（200-500字）",
+        },
+        "card_interpretations": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "position": {"type": "string"},
+                    "card_name": {"type": "string"},
+                    "interpretation": {"type": "string"},
+                },
+                "required": ["position", "card_name", "interpretation"],
+                "additionalProperties": False,
+            },
+        },
+        "advice": {"type": "string", "description": "行動建議"},
+        "key_insights": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "3-5 條關鍵洞察",
+        },
+    },
+    "required": ["overall_summary", "card_interpretations", "advice", "key_insights"],
+    "additionalProperties": False,
+}
+
+
 # 牌陣位置說明
 SPREAD_DESCRIPTIONS = {
     "past_present_future": {

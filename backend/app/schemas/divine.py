@@ -37,6 +37,7 @@ class DivineBase(BaseModel):
     question_category: Optional[str] = Field(None, description="問題分類")
     spread_type: str = Field("past_present_future", description="牌陣類型")
     spread_data: Dict[str, Any] = Field(..., description="牌陣資料（JSON）")
+    persona_id: Optional[str] = Field(None, description="解讀角色 ID（未提供時使用預設角色）")
 
 
 class DivineCreate(DivineBase):

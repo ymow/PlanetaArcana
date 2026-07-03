@@ -7,14 +7,18 @@ from sqlalchemy.orm import Session
 
 from app.services.ai.claude_client import ClaudeClient
 from app.services.ai.prompts import (
-    SYSTEM_PROMPT,
-    FOLLOW_UP_SYSTEM_PROMPT,
+    DAILY_DRAW_SCHEMA,
+    DAILY_DRAW_SYSTEM_PROMPT,
     INTERPRETATION_SCHEMA,
+    build_daily_draw_prompt,
+    build_follow_up_system_prompt,
     build_interpretation_prompt,
+    build_system_prompt,
 )
 from app.models.divine import Divine
 from app.models.card import Card
 from app.models.conversation import Conversation
+from app.models.daily_draw import DailyDraw
 
 
 class AIService:
@@ -51,59 +55,108 @@ class AIService:
 
         # 調用 Claude API（結構化輸出保證回應為合法 JSON）
         response = self.claude.generate_interpretation(
-            SYSTEM_PROMPT, user_prompt, output_schema=INTERPRETATION_SCHEMA
+            build_system_prompt(divine.persona_id),
+            user_prompt,
+            output_schema=INTERPRETATION_SCHEMA,
         )
 
-        # 解析 JSON 回應
-        interpretation_data = self.claude.parse_json_response(response["content"])
+        return self._finalize_interpretation(
+            divine, response["content"], response["tokens"]
+        )
 
-        # 驗證回應結構
+    def stream_interpretation(self, divine_id: str):
+        """
+        以串流方式生成占卜解讀。
+
+        Yields:
+            {"event": "delta", "data": {"text": "..."}} — 生成中的逐段文字
+            {"event": "complete", "data": {...}} — 驗證與持久化完成後的完整解讀
+
+        中斷或驗證失敗時不會持久化任何內容（與非串流路徑行為一致）。
+        """
+        divine = self.db.query(Divine).filter(Divine.id == divine_id).first()
+        if not divine:
+            raise Exception(f"找不到占卜記錄: {divine_id}")
+
+        cards_data = self._prepare_cards_data(divine.spread_data)
+        user_prompt = build_interpretation_prompt(
+            question=divine.question_text,
+            spread_type=divine.spread_type,
+            cards_data=cards_data,
+        )
+
+        final = None
+        for chunk in self.claude.stream_interpretation(
+            build_system_prompt(divine.persona_id),
+            user_prompt,
+            output_schema=INTERPRETATION_SCHEMA,
+        ):
+            if chunk["type"] == "delta":
+                yield {"event": "delta", "data": {"text": chunk["text"]}}
+            else:
+                final = chunk
+
+        if not final:
+            raise Exception("串流未回傳完整解讀")
+
+        result = self._finalize_interpretation(
+            divine, final["content"], final["tokens"]
+        )
+        yield {"event": "complete", "data": result}
+
+    def _finalize_interpretation(
+        self, divine: Divine, content: str, tokens: Dict[str, int]
+    ) -> Dict[str, Any]:
+        """解析、驗證並持久化解讀結果（串流與非串流共用）。"""
+        interpretation_data = self.claude.parse_json_response(content)
         self._validate_interpretation(interpretation_data)
 
         # 更新占卜記錄
         divine.interpretation = interpretation_data
         divine.is_ai_interpreted = True
         divine.ai_model = self.claude.model
-        divine.interpretation_tokens = response["tokens"]["total"]
+        divine.interpretation_tokens = tokens["total"]
         divine.interpreted_at = datetime.utcnow()
         self.db.commit()
 
         # 建立或重設對話記錄（divine_id 有 unique 約束，重新解讀時必須沿用同一筆）
         initial_message = {
             "role": "assistant",
-            "content": response["content"],
+            "content": content,
             "timestamp": datetime.utcnow().isoformat(),
-            "tokens": response["tokens"]["total"],
+            "tokens": tokens["total"],
         }
 
         conversation = (
             self.db.query(Conversation)
-            .filter(Conversation.divine_id == divine_id)
+            .filter(Conversation.divine_id == divine.id)
             .first()
         )
 
         if conversation:
             conversation.messages = [initial_message]
-            conversation.total_tokens = response["tokens"]["total"]
+            conversation.total_tokens = tokens["total"]
         else:
             conversation = Conversation(
-                divine_id=divine_id,
+                divine_id=divine.id,
                 messages=[initial_message],
-                total_tokens=response["tokens"]["total"],
+                total_tokens=tokens["total"],
+                user_id=divine.user_id,
             )
             self.db.add(conversation)
 
+        conversation.user_id = divine.user_id
         self.db.commit()
         self.db.refresh(conversation)
 
         return {
-            "divine_id": divine_id,
+            "divine_id": divine.id,
             "interpretation": interpretation_data,
             "conversation_id": conversation.id,
             "metadata": {
                 "model": self.claude.model,
                 "generated_at": divine.interpreted_at,
-                "tokens_used": response["tokens"]["total"],
+                "tokens_used": tokens["total"],
             },
         }
 
@@ -215,9 +268,10 @@ class AIService:
             conversation, divine, user_message
         )
 
-        # 調用 Claude API
+        # 調用 Claude API（沿用該占卜的角色,避免追問「變聲」）
         response = self.claude.continue_conversation(
-            FOLLOW_UP_SYSTEM_PROMPT, messages
+            build_follow_up_system_prompt(divine.persona_id if divine else None),
+            messages,
         )
 
         # 更新對話記錄
@@ -297,3 +351,58 @@ class AIService:
         messages.append({"role": "user", "content": user_message})
 
         return messages
+
+    def generate_daily_draw(
+        self, user_id: str, draw_date: str, card: Card, is_reversed: bool
+    ) -> DailyDraw:
+        """生成並儲存登入使用者的每日一牌。"""
+        card_data = self._prepare_single_card_data(card, is_reversed)
+        user_prompt = build_daily_draw_prompt(card_data)
+
+        response = self.claude.generate_interpretation(
+            DAILY_DRAW_SYSTEM_PROMPT, user_prompt, output_schema=DAILY_DRAW_SCHEMA
+        )
+        interpretation_data = self.claude.parse_json_response(response["content"])
+        self._validate_daily_draw(interpretation_data)
+
+        draw = DailyDraw(
+            user_id=user_id,
+            draw_date=draw_date,
+            card_id=card.id,
+            card_name=card.name,
+            card_name_en=card.name_en,
+            is_reversed=is_reversed,
+            interpretation=interpretation_data,
+            ai_model=self.claude.model,
+            interpretation_tokens=response["tokens"]["total"],
+        )
+        self.db.add(draw)
+        self.db.commit()
+        self.db.refresh(draw)
+        return draw
+
+    def _prepare_single_card_data(self, card: Card, is_reversed: bool) -> Dict[str, Any]:
+        orientation = "正位" if not is_reversed else "逆位"
+        meaning = card.upright_meaning if not is_reversed else card.reversed_meaning
+        keywords_str = card.upright_keywords if not is_reversed else card.reversed_keywords
+
+        try:
+            keywords = json.loads(keywords_str)
+        except (json.JSONDecodeError, TypeError):
+            keywords = []
+
+        return {
+            "card_name": card.name,
+            "card_name_en": card.name_en,
+            "orientation": orientation,
+            "meaning": meaning,
+            "keywords": keywords,
+        }
+
+    def _validate_daily_draw(self, data: Dict[str, Any]) -> None:
+        required_fields = ["key_theme", "summary", "advice", "reflection_prompt"]
+        for field in required_fields:
+            if field not in data:
+                raise Exception(f"每日一牌資料缺少必要欄位: {field}")
+        if len(data["summary"]) < 20:
+            raise Exception("每日一牌內容過短")

@@ -1,10 +1,22 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { divinesApi, conversationsApi } from '@/services/api'
-import type { Divine, InterpretationResponse, Message } from '@/types'
+import { divinesApi, conversationsApi, personasApi } from '@/services/api'
+import { useAuth } from '@/context/AuthContext'
+import type { Divine, InterpretationResponse, Message, Persona } from '@/types'
+
+// 從串流中的 JSON 緩衝區抽出（可能尚未閉合的）overall_summary 字串做漸進顯示
+function extractPartialSummary(raw: string): string {
+  const match = raw.match(/"overall_summary"\s*:\s*"((?:[^"\\]|\\.)*)/)
+  if (!match) return ''
+  return match[1]
+    .replace(/\\n/g, '\n')
+    .replace(/\\"/g, '"')
+    .replace(/\\\\/g, '\\')
+}
 
 export default function InterpretationPage() {
   const { id } = useParams<{ id: string }>()
+  const { user } = useAuth()
   const [divine, setDivine] = useState<Divine | null>(null)
   const [interpretation, setInterpretation] =
     useState<InterpretationResponse | null>(null)
@@ -13,12 +25,24 @@ export default function InterpretationPage() {
   const [userMessage, setUserMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isSharing, setIsSharing] = useState(false)
+  const [shareMessage, setShareMessage] = useState<string | null>(null)
+  const [streamingPreview, setStreamingPreview] = useState('')
+  const [personas, setPersonas] = useState<Persona[]>([])
 
   useEffect(() => {
     if (id) {
       loadDivine()
     }
+    personasApi.getAll().then(setPersonas).catch(() => {
+      // 角色資訊載入失敗只影響顯示名稱,不擋解讀流程
+    })
   }, [id])
+
+  // 這筆占卜的解讀角色(舊資料沒有 persona_id 時退回第一個 = 預設角色)
+  const persona =
+    personas.find((p) => p.id === divine?.persona_id) ?? personas[0] ?? null
+  const personaLabel = persona ? `${persona.emoji} ${persona.name}` : 'AI 解讀師'
 
   const loadDivine = async () => {
     if (!id) return
@@ -52,21 +76,84 @@ export default function InterpretationPage() {
     if (!id) return
 
     setIsGenerating(true)
+    setStreamingPreview('')
+    let rawBuffer = ''
+
     try {
-      const result = await divinesApi.interpret(id, {
-        interpretation_type: 'initial',
+      await divinesApi.interpretStream(id, {
+        onDelta: (text) => {
+          rawBuffer += text
+          setStreamingPreview(extractPartialSummary(rawBuffer))
+        },
+        onComplete: async (result) => {
+          setInterpretation(result)
+          setConversationId(result.conversation_id || null)
+          // 重新載入以更新 divine 狀態
+          await loadDivine()
+        },
+        onError: (detail) => {
+          console.error('生成解讀失敗:', detail)
+          alert(`生成解讀失敗:${detail}`)
+        },
       })
-
-      setInterpretation(result)
-      setConversationId(result.conversation_id || null)
-
-      // 重新載入以更新 divine 狀態
-      await loadDivine()
     } catch (error) {
+      // 串流連線中斷（未持久化任何內容），可直接重試
       console.error('生成解讀失敗:', error)
       alert('生成解讀失敗，請重試')
     } finally {
       setIsGenerating(false)
+      setStreamingPreview('')
+    }
+  }
+
+  const claimDivine = async () => {
+    if (!id) return
+
+    setIsLoading(true)
+    try {
+      const claimed = await divinesApi.claim(id)
+      setDivine(claimed)
+    } catch (error) {
+      console.error('綁定占卜失敗:', error)
+      alert('綁定占卜失敗')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const shareDivine = async () => {
+    if (!id || !divine) return
+
+    setIsSharing(true)
+    setShareMessage(null)
+    try {
+      const shareUrl = window.location.href
+      const shareText = `我在 Planeta Arcana 問了塔羅:「${divine.question_text}」`
+      const canNativeShare = typeof navigator.share === 'function'
+      if (canNativeShare) {
+        await navigator.share({ title: 'Planeta Arcana 塔羅解讀', text: shareText, url: shareUrl })
+      } else {
+        await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`)
+      }
+
+      const result = await divinesApi.share(id)
+      if (result.granted) {
+        setShareMessage(
+          `分享成功!今日解讀額度 +1,剩餘 ${result.quota.remaining} 次`
+        )
+      } else {
+        setShareMessage(
+          `${canNativeShare ? '已分享' : '連結已複製'}(${result.reason})`
+        )
+      }
+    } catch (error) {
+      // 使用者取消系統分享面板時不視為錯誤
+      if ((error as DOMException)?.name !== 'AbortError') {
+        console.error('分享失敗:', error)
+        setShareMessage('分享失敗,請重試')
+      }
+    } finally {
+      setIsSharing(false)
     }
   }
 
@@ -125,6 +212,16 @@ export default function InterpretationPage() {
       <div className="bg-tarot-primary/20 backdrop-blur-sm p-6 rounded-lg border border-tarot-accent/30 mb-6">
         <h2 className="text-xl font-bold text-tarot-gold mb-2">你的問題</h2>
         <p className="text-tarot-light">{divine.question_text}</p>
+        {user && !divine.user_id && (
+          <button
+            type="button"
+            onClick={claimDivine}
+            disabled={isLoading}
+            className="mt-4 rounded bg-tarot-secondary px-4 py-2 text-sm text-white transition hover:bg-tarot-primary disabled:opacity-50"
+          >
+            保存到我的歷史
+          </button>
+        )}
       </div>
 
       {/* 抽到的牌 */}
@@ -165,6 +262,20 @@ export default function InterpretationPage() {
           >
             {isGenerating ? '正在生成解讀...' : '✨ 生成 AI 解讀'}
           </button>
+
+          {/* 串流中的漸進預覽 */}
+          {isGenerating && (
+            <div className="mt-6 bg-tarot-primary/20 backdrop-blur-sm p-6 rounded-lg border border-tarot-accent/30 text-left">
+              <h2 className="text-xl font-bold text-tarot-gold mb-3 mystical-font">
+                <span className="animate-pulse">🔮</span>{' '}
+                {persona ? `${persona.name}正在解讀…` : '塔羅師正在解讀…'}
+              </h2>
+              <p className="text-tarot-light leading-relaxed whitespace-pre-wrap">
+                {streamingPreview || '正在感應牌面能量…'}
+                <span className="animate-pulse">▍</span>
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -172,9 +283,14 @@ export default function InterpretationPage() {
         <>
           {/* 整體解讀 */}
           <div className="bg-tarot-primary/20 backdrop-blur-sm p-6 rounded-lg border border-tarot-accent/30 mb-6">
-            <h2 className="text-2xl font-bold text-tarot-gold mb-4 mystical-font">
+            <h2 className="text-2xl font-bold text-tarot-gold mb-1 mystical-font">
               整體解讀
             </h2>
+            {persona && (
+              <p className="text-sm text-tarot-accent mb-4">
+                由 {personaLabel} 為你解讀
+              </p>
+            )}
             <p className="text-tarot-light leading-relaxed">
               {interpretation.interpretation.overall_summary}
             </p>
@@ -227,6 +343,20 @@ export default function InterpretationPage() {
             </div>
           )}
 
+          {/* 分享 +1 配額 */}
+          <div className="text-center mb-8">
+            <button
+              onClick={shareDivine}
+              disabled={isSharing}
+              className="px-6 py-3 bg-tarot-secondary text-white rounded-lg hover:bg-tarot-primary transition disabled:opacity-50"
+            >
+              {isSharing ? '分享中...' : '🔗 分享這次解讀(+1 今日額度)'}
+            </button>
+            {shareMessage && (
+              <p className="mt-3 text-sm text-tarot-accent">{shareMessage}</p>
+            )}
+          </div>
+
           {/* 追問對話 */}
           {conversationId && (
             <div className="bg-tarot-primary/20 backdrop-blur-sm p-6 rounded-lg border border-tarot-accent/30">
@@ -246,7 +376,7 @@ export default function InterpretationPage() {
                     }`}
                   >
                     <p className="text-sm text-tarot-accent mb-1">
-                      {msg.role === 'user' ? '你' : 'AI 解讀師'}
+                      {msg.role === 'user' ? '你' : personaLabel}
                     </p>
                     <p className="text-tarot-light">{msg.content}</p>
                   </div>

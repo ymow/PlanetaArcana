@@ -11,6 +11,10 @@ from app.schemas.conversation import (
     MessageRequest,
     MessageResponse,
 )
+from app.schemas.auth import AuthResponse, DevLoginRequest, GoogleAuthRequest, User
+from app.schemas.daily_draw import DailyDraw
+from app.schemas.quota import QuotaStatus, ShareBonusResult
+from app.schemas.persona import Persona
 
 __all__ = [
     "Card",
@@ -24,4 +28,12 @@ __all__ = [
     "Conversation",
     "MessageRequest",
     "MessageResponse",
+    "AuthResponse",
+    "DevLoginRequest",
+    "GoogleAuthRequest",
+    "User",
+    "DailyDraw",
+    "QuotaStatus",
+    "ShareBonusResult",
+    "Persona",
 ]

@@ -1,15 +1,32 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { divinesApi } from '@/services/api'
-import type { Divine } from '@/types'
+import { divinesApi, personasApi } from '@/services/api'
+import { useAuth } from '@/context/AuthContext'
+import LoginButton from '@/components/LoginButton'
+import type { Divine, Persona } from '@/types'
 
 export default function HistoryPage() {
+  const { user } = useAuth()
   const [divines, setDivines] = useState<Divine[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [personas, setPersonas] = useState<Persona[]>([])
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    loadHistory()
+    if (user) {
+      loadHistory()
+    } else {
+      setDivines([])
+    }
+  }, [user])
+
+  useEffect(() => {
+    personasApi.getAll().then(setPersonas).catch(() => {
+      // 角色資訊載入失敗只影響 badge 顯示
+    })
   }, [])
+
+  const personaOf = (divine: Divine) =>
+    personas.find((p) => p.id === divine.persona_id) ?? personas[0] ?? null
 
   const loadHistory = async () => {
     setIsLoading(true)
@@ -41,6 +58,22 @@ export default function HistoryPage() {
       <div className="text-center py-16">
         <div className="text-6xl mb-4 animate-pulse">🔮</div>
         <h2 className="text-2xl text-tarot-gold">載入中...</h2>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-4xl font-bold text-tarot-gold mystical-font text-center mb-8">
+          占卜歷史
+        </h1>
+        <div className="rounded-lg border border-tarot-accent/30 bg-tarot-primary/20 p-8 text-center backdrop-blur-sm">
+          <p className="mb-6 text-tarot-light">登入後查看你的占卜歷史。</p>
+          <div className="flex justify-center">
+            <LoginButton />
+          </div>
+        </div>
       </div>
     )
   }
@@ -87,6 +120,11 @@ export default function HistoryPage() {
                   </div>
                   <p className="text-sm text-tarot-accent">
                     {new Date(divine.created_at).toLocaleString('zh-TW')}
+                    {personaOf(divine) && (
+                      <span className="ml-3">
+                        {personaOf(divine)!.emoji} {personaOf(divine)!.name}
+                      </span>
+                    )}
                   </p>
                 </div>
 

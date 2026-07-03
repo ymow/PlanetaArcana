@@ -12,12 +12,20 @@ export default function HomePage() {
           由 AI 驅動的偉特塔羅解讀系統
         </p>
 
-        <Link
-          to="/divine"
-          className="inline-block px-8 py-4 bg-gradient-to-r from-tarot-primary to-tarot-secondary text-white text-lg rounded-lg hover:shadow-xl hover:scale-105 transition-all duration-300 mystical-font"
-        >
-          ✨ 開始你的塔羅之旅
-        </Link>
+        <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Link
+            to="/daily"
+            className="inline-block rounded-lg bg-tarot-secondary px-8 py-4 text-lg text-white transition-all duration-300 hover:scale-105 hover:shadow-xl mystical-font"
+          >
+            每日一牌
+          </Link>
+          <Link
+            to="/divine"
+            className="inline-block px-8 py-4 bg-gradient-to-r from-tarot-primary to-tarot-secondary text-white text-lg rounded-lg hover:shadow-xl hover:scale-105 transition-all duration-300 mystical-font"
+          >
+            ✨ 開始你的塔羅之旅
+          </Link>
+        </div>
       </div>
 
       {/* Features */}

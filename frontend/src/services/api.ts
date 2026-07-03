@@ -6,9 +6,16 @@ import type {
   InterpretationResponse,
   Conversation,
   MessageResponse,
+  AuthResponse,
+  User,
+  DailyDraw,
+  QuotaStatus,
+  ShareBonusResult,
+  Persona,
 } from '@/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const TOKEN_STORAGE_KEY = 'planeta_arcana_token'
 
 const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
@@ -16,6 +23,42 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 })
+
+export const getAuthToken = () => localStorage.getItem(TOKEN_STORAGE_KEY)
+
+export const setAuthToken = (token: string) => {
+  localStorage.setItem(TOKEN_STORAGE_KEY, token)
+}
+
+export const clearAuthToken = () => {
+  localStorage.removeItem(TOKEN_STORAGE_KEY)
+}
+
+api.interceptors.request.use((config) => {
+  const token = getAuthToken()
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+// Auth API
+export const authApi = {
+  me: async (): Promise<User> => {
+    const response = await api.get('/auth/me')
+    return response.data
+  },
+
+  loginWithGoogle: async (credential: string): Promise<AuthResponse> => {
+    const response = await api.post('/auth/google', { credential })
+    return response.data
+  },
+
+  devLogin: async (email: string, name?: string): Promise<AuthResponse> => {
+    const response = await api.post('/auth/dev', { email, name })
+    return response.data
+  },
+}
 
 // Cards API
 export const cardsApi = {
@@ -79,12 +122,86 @@ export const divinesApi = {
     await api.delete(`/divines/${id}`)
   },
 
+  claim: async (id: string): Promise<Divine> => {
+    const response = await api.post(`/divines/${id}/claim`)
+    return response.data
+  },
+
+  share: async (id: string): Promise<ShareBonusResult> => {
+    const response = await api.post(`/divines/${id}/share`)
+    return response.data
+  },
+
   interpret: async (
     id: string,
     data: { interpretation_type: 'initial' | 'follow_up'; user_message?: string }
   ): Promise<InterpretationResponse> => {
     const response = await api.post(`/divines/${id}/interpret`, data)
     return response.data
+  },
+
+  /**
+   * SSE 串流解讀。事件：delta（逐段文字）→ complete（完整解讀）；失敗時 error。
+   * EventSource 不支援 POST 與自訂 header，改用 fetch + ReadableStream。
+   */
+  interpretStream: async (
+    id: string,
+    handlers: {
+      onDelta: (text: string) => void
+      onComplete: (result: InterpretationResponse) => void
+      onError: (detail: string) => void
+    }
+  ): Promise<void> => {
+    const token = getAuthToken()
+    const response = await fetch(
+      `${API_BASE_URL}/api/divines/${id}/interpret/stream`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      }
+    )
+
+    if (!response.ok || !response.body) {
+      let detail = `串流請求失敗（${response.status}）`
+      try {
+        detail = (await response.json()).detail || detail
+      } catch {
+        // 回應非 JSON 時沿用預設訊息
+      }
+      handlers.onError(detail)
+      return
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    const dispatch = (block: string) => {
+      let event = ''
+      let data = ''
+      for (const line of block.split('\n')) {
+        if (line.startsWith('event: ')) event = line.slice(7)
+        else if (line.startsWith('data: ')) data = line.slice(6)
+      }
+      if (!event || !data) return
+      if (event === 'delta') handlers.onDelta(JSON.parse(data).text)
+      else if (event === 'complete') handlers.onComplete(JSON.parse(data))
+      else if (event === 'error') handlers.onError(JSON.parse(data).detail)
+    }
+
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      let idx
+      while ((idx = buffer.indexOf('\n\n')) !== -1) {
+        dispatch(buffer.slice(0, idx))
+        buffer = buffer.slice(idx + 2)
+      }
+    }
   },
 }
 
@@ -105,6 +222,45 @@ export const conversationsApi = {
 
   delete: async (id: string): Promise<void> => {
     await api.delete(`/conversations/${id}`)
+  },
+}
+
+// Personas API（角色列表是靜態的,模組層快取一次）
+let personasCache: Promise<Persona[]> | null = null
+
+export const personasApi = {
+  getAll: (): Promise<Persona[]> => {
+    if (!personasCache) {
+      personasCache = api
+        .get('/personas')
+        .then((response) => response.data)
+        .catch((error) => {
+          personasCache = null // 失敗不快取,允許重試
+          throw error
+        })
+    }
+    return personasCache
+  },
+}
+
+// Quota API
+export const quotaApi = {
+  getStatus: async (): Promise<QuotaStatus> => {
+    const response = await api.get('/quota')
+    return response.data
+  },
+}
+
+// Daily Draw API
+export const dailyDrawsApi = {
+  getToday: async (): Promise<DailyDraw> => {
+    const response = await api.get('/daily-draws/today')
+    return response.data
+  },
+
+  createToday: async (): Promise<DailyDraw> => {
+    const response = await api.post('/daily-draws/today')
+    return response.data
   },
 }
 

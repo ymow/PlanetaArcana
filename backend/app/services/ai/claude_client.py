@@ -67,6 +67,45 @@ class ClaudeClient:
         except Exception as e:
             raise Exception(f"Claude API 調用失敗: {str(e)}")
 
+    def stream_interpretation(
+        self, system_prompt: str, user_prompt: str, output_schema: Dict[str, Any] = None
+    ):
+        """
+        以串流方式生成塔羅解讀。
+
+        Yields:
+            {"type": "delta", "text": "..."} — 逐段文字
+            {"type": "final", "content": "完整回應", "tokens": {...}} — 串流結束後一次
+        """
+        extra_params = {}
+        if output_schema:
+            extra_params["output_config"] = {
+                "format": {"type": "json_schema", "schema": output_schema}
+            }
+
+        try:
+            with self.client.messages.stream(
+                model=self.model,
+                max_tokens=self.max_tokens,
+                temperature=self.temperature,
+                system=system_prompt,
+                messages=[{"role": "user", "content": user_prompt}],
+                **extra_params,
+            ) as stream:
+                for text in stream.text_stream:
+                    yield {"type": "delta", "text": text}
+                final = stream.get_final_message()
+
+            tokens = {
+                "input": final.usage.input_tokens,
+                "output": final.usage.output_tokens,
+                "total": final.usage.input_tokens + final.usage.output_tokens,
+            }
+            yield {"type": "final", "content": final.content[0].text, "tokens": tokens}
+
+        except Exception as e:
+            raise Exception(f"Claude API 調用失敗: {str(e)}")
+
     def continue_conversation(
         self, system_prompt: str, messages: List[Dict[str, str]]
     ) -> Dict[str, Any]:

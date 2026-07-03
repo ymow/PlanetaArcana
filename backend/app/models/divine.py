@@ -20,6 +20,9 @@ class Divine(Base):
     spread_type = Column(String(50), nullable=False, default="past_present_future")
     spread_data = Column(JSON, nullable=False)  # 完整的牌陣資料（包含卡片、位置等）
 
+    # 解讀角色（prompts.py PERSONAS 的 key;NULL = 舊資料,使用時 fallback default）
+    persona_id = Column(String(50), nullable=True)
+
     # AI 解讀
     interpretation = Column(JSON, nullable=True)  # AI 生成的解讀結果
     is_ai_interpreted = Column(Boolean, default=False)

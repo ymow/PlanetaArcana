@@ -3,6 +3,7 @@ import HomePage from './pages/HomePage'
 import DivinePage from './pages/DivinePage'
 import InterpretationPage from './pages/InterpretationPage'
 import HistoryPage from './pages/HistoryPage'
+import DailyDrawPage from './pages/DailyDrawPage'
 import Header from './components/Header'
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
       <main className="container mx-auto px-4 py-8">
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/daily" element={<DailyDrawPage />} />
           <Route path="/divine" element={<DivinePage />} />
           <Route path="/divine/:id" element={<InterpretationPage />} />
           <Route path="/history" element={<HistoryPage />} />

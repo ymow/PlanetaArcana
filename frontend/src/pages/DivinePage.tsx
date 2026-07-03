@@ -1,16 +1,31 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { cardsApi, divinesApi } from '@/services/api'
-import type { Card, DivineCreate } from '@/types'
+import { cardsApi, divinesApi, personasApi } from '@/services/api'
+import type { Card, DivineCreate, Persona } from '@/types'
 
 export default function DivinePage() {
   const navigate = useNavigate()
   const [step, setStep] = useState<'question' | 'drawing' | 'drawn'>('question')
   const [question, setQuestion] = useState('')
+  const [personas, setPersonas] = useState<Persona[]>([])
+  const [personaId, setPersonaId] = useState<string | null>(null)
   const [drawnCards, setDrawnCards] = useState<
     Array<{ card: Card; is_reversed: boolean }>
   >([])
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    personasApi
+      .getAll()
+      .then((list) => {
+        setPersonas(list)
+        setPersonaId((current) => current ?? list[0]?.id ?? null)
+      })
+      .catch((error) => {
+        // 角色列表載入失敗不擋占卜流程,後端會用預設角色
+        console.error('載入解讀角色失敗:', error)
+      })
+  }, [])
 
   const handleQuestionSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -53,6 +68,7 @@ export default function DivinePage() {
 
       const divineData: DivineCreate = {
         question_text: question,
+        ...(personaId ? { persona_id: personaId } : {}),
         spread_type: 'past_present_future',
         spread_data: {
           type: 'past_present_future',
@@ -103,6 +119,38 @@ export default function DivinePage() {
               onChange={(e) => setQuestion(e.target.value)}
               required
             />
+
+            {/* 選擇解讀角色 */}
+            {personas.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-lg font-bold text-tarot-light mb-3">
+                  選擇你的塔羅師
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {personas.map((persona) => (
+                    <button
+                      key={persona.id}
+                      type="button"
+                      onClick={() => setPersonaId(persona.id)}
+                      className={`p-4 rounded-lg border text-left transition ${
+                        personaId === persona.id
+                          ? 'border-tarot-gold bg-tarot-secondary/30 shadow-lg'
+                          : 'border-tarot-accent/30 bg-tarot-dark/30 hover:border-tarot-accent/60'
+                      }`}
+                    >
+                      <div className="text-3xl mb-2">{persona.emoji}</div>
+                      <div className="font-bold text-tarot-light">
+                        {persona.name}
+                        {persona.is_premium && <span className="ml-1">🔒</span>}
+                      </div>
+                      <div className="text-xs text-tarot-accent mt-1">
+                        {persona.tagline}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <button
               type="submit"

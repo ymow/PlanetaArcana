@@ -38,6 +38,7 @@ export interface Divine {
   question_category?: string
   spread_type: string
   spread_data: SpreadData
+  persona_id?: string
   interpretation?: InterpretationData
   is_ai_interpreted: boolean
   ai_model?: string
@@ -54,6 +55,18 @@ export interface DivineCreate {
   question_category?: string
   spread_type: string
   spread_data: SpreadData
+  persona_id?: string
+}
+
+// Persona Types
+export interface Persona {
+  id: string
+  name: string
+  name_en: string
+  emoji: string
+  tagline: string
+  description: string
+  is_premium: boolean
 }
 
 // AI Interpretation Types
@@ -103,4 +116,56 @@ export interface MessageResponse {
   conversation_id: string
   message: Message
   tokens_used: number
+}
+
+// Auth Types
+export interface User {
+  id: string
+  email: string
+  name?: string
+  avatar_url?: string
+  created_at: string
+  last_login_at?: string
+}
+
+export interface AuthResponse {
+  access_token: string
+  token_type: 'bearer'
+  user: User
+}
+
+// Quota Types
+export interface QuotaStatus {
+  daily_limit: number
+  share_bonus: number
+  used: number
+  remaining: number
+}
+
+export interface ShareBonusResult {
+  granted: boolean
+  reason?: string
+  quota: QuotaStatus
+}
+
+// Daily Draw Types
+export interface DailyDrawInterpretation {
+  key_theme: string
+  summary: string
+  advice: string
+  reflection_prompt: string
+}
+
+export interface DailyDraw {
+  id: string
+  user_id: string
+  draw_date: string
+  card_id: string
+  card_name: string
+  card_name_en: string
+  is_reversed: boolean
+  interpretation: DailyDrawInterpretation
+  ai_model?: string
+  interpretation_tokens?: number
+  created_at: string
 }

@@ -1,8 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { divinesApi, conversationsApi, personasApi } from '@/services/api'
+import { divinesApi, conversationsApi, personasApi, spreadsApi } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
-import type { Divine, InterpretationResponse, Message, Persona } from '@/types'
+import type {
+  Divine,
+  InterpretationResponse,
+  Message,
+  Persona,
+  SpreadInfo,
+} from '@/types'
 
 // 從串流中的 JSON 緩衝區抽出（可能尚未閉合的）overall_summary 字串做漸進顯示
 function extractPartialSummary(raw: string): string {
@@ -29,6 +35,7 @@ export default function InterpretationPage() {
   const [shareMessage, setShareMessage] = useState<string | null>(null)
   const [streamingPreview, setStreamingPreview] = useState('')
   const [personas, setPersonas] = useState<Persona[]>([])
+  const [spreads, setSpreads] = useState<SpreadInfo[]>([])
 
   useEffect(() => {
     if (id) {
@@ -37,12 +44,22 @@ export default function InterpretationPage() {
     personasApi.getAll().then(setPersonas).catch(() => {
       // 角色資訊載入失敗只影響顯示名稱,不擋解讀流程
     })
+    spreadsApi.getAll().then(setSpreads).catch(() => {
+      // 牌陣資訊載入失敗只影響位置名稱顯示
+    })
   }, [id])
 
   // 這筆占卜的解讀角色(舊資料沒有 persona_id 時退回第一個 = 預設角色)
   const persona =
     personas.find((p) => p.id === divine?.persona_id) ?? personas[0] ?? null
   const personaLabel = persona ? `${persona.emoji} ${persona.name}` : 'AI 解讀師'
+
+  // 這筆占卜的牌陣(用於位置名稱顯示)
+  const spread = spreads.find((s) => s.id === divine?.spread_type) ?? null
+  const positionName = (positionKey: string, index: number) =>
+    spread?.positions.find((p) => p.key === positionKey)?.name ??
+    ['過去', '現在', '未來'][index] ??
+    positionKey
 
   const loadDivine = async () => {
     if (!id) return
@@ -212,6 +229,12 @@ export default function InterpretationPage() {
       <div className="bg-tarot-primary/20 backdrop-blur-sm p-6 rounded-lg border border-tarot-accent/30 mb-6">
         <h2 className="text-xl font-bold text-tarot-gold mb-2">你的問題</h2>
         <p className="text-tarot-light">{divine.question_text}</p>
+        {divine.spread_data.options && (
+          <div className="mt-3 text-sm text-tarot-accent space-y-1">
+            <p>A:{divine.spread_data.options.a}</p>
+            <p>B:{divine.spread_data.options.b}</p>
+          </div>
+        )}
         {user && !divine.user_id && (
           <button
             type="button"
@@ -225,16 +248,23 @@ export default function InterpretationPage() {
       </div>
 
       {/* 抽到的牌 */}
-      <div className="grid md:grid-cols-3 gap-4 mb-8">
+      <div
+        className={`grid gap-4 mb-8 ${
+          divine.spread_data.cards.length === 1
+            ? 'max-w-sm mx-auto'
+            : divine.spread_data.cards.length === 2
+              ? 'md:grid-cols-2'
+              : 'md:grid-cols-3'
+        }`}
+      >
         {divine.spread_data.cards.map((cardInfo, index) => {
-          const positions = ['過去', '現在', '未來']
           return (
             <div
               key={index}
               className="bg-tarot-primary/20 backdrop-blur-sm p-4 rounded-lg border border-tarot-accent/30 text-center"
             >
               <h3 className="text-sm font-bold text-tarot-accent mb-2">
-                {positions[index]}
+                {positionName(cardInfo.position, index)}
               </h3>
               <div
                 className={`text-4xl mb-2 ${

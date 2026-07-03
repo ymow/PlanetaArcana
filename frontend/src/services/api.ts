@@ -12,6 +12,7 @@ import type {
   QuotaStatus,
   ShareBonusResult,
   Persona,
+  SpreadInfo,
 } from '@/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
@@ -240,6 +241,24 @@ export const personasApi = {
         })
     }
     return personasCache
+  },
+}
+
+// Spreads API（牌陣列表是靜態的,模組層快取一次）
+let spreadsCache: Promise<SpreadInfo[]> | null = null
+
+export const spreadsApi = {
+  getAll: (): Promise<SpreadInfo[]> => {
+    if (!spreadsCache) {
+      spreadsCache = api
+        .get('/spreads')
+        .then((response) => response.data)
+        .catch((error) => {
+          spreadsCache = null // 失敗不快取,允許重試
+          throw error
+        })
+    }
+    return spreadsCache
   },
 }
 

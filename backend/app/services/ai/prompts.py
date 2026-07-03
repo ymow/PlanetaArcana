@@ -158,30 +158,59 @@ INTERPRETATION_SCHEMA = {
 }
 
 
-# 牌陣位置說明
-SPREAD_DESCRIPTIONS = {
+# ---------------------------------------------------------------------------
+# 牌陣 registry
+#
+# positions 為有序列表(前端抽牌與排版依此順序);reading_focus 是該牌陣
+# 解讀指令的差異點;requires_options 表示需要使用者提供選項描述(二選一)。
+# ---------------------------------------------------------------------------
+SPREADS = {
     "past_present_future": {
+        "id": "past_present_future",
         "name": "過去-現在-未來",
-        "description": "三牌陣,揭示事件的時間脈絡",
-        "positions": {
-            "past": "影響問題的過去因素或背景",
-            "present": "當前的狀態、挑戰或機會",
-            "future": "可能的發展方向或結果趨勢",
-        },
-    }
+        "description": "經典三牌陣,揭示事件的時間脈絡與發展趨勢",
+        "reading_focus": "三張牌之間的關聯與故事線",
+        "requires_options": False,
+        "positions": [
+            {"key": "past", "name": "過去", "description": "影響問題的過去因素或背景"},
+            {"key": "present", "name": "現在", "description": "當前的狀態、挑戰或機會"},
+            {"key": "future", "name": "未來", "description": "可能的發展方向或結果趨勢"},
+        ],
+    },
+    "single": {
+        "id": "single",
+        "name": "單張指引",
+        "description": "快問快答 — 一張牌直指核心,適合日常小事與需要立即方向的問題",
+        "reading_focus": "深入解析這張牌與問題的關聯,從牌面意象、元素與象徵細節展開,不因只有一張牌而流於空泛",
+        "requires_options": False,
+        "positions": [
+            {"key": "guidance", "name": "核心指引", "description": "針對問題最需要被看見的核心訊息"},
+        ],
+    },
+    "two_choice": {
+        "id": "two_choice",
+        "name": "兩難抉擇",
+        "description": "二選一 — 比較兩個選項的能量與發展,協助做出決定",
+        "reading_focus": "比較兩個選項的能量差異,明確指出各自的機會與代價,最後給出傾向與判斷依據,不迴避結論",
+        "requires_options": True,
+        "positions": [
+            {"key": "option_a", "name": "選項 A", "description": "選擇 A 的能量與可能發展"},
+            {"key": "option_b", "name": "選項 B", "description": "選擇 B 的能量與可能發展"},
+        ],
+    },
 }
 
 
 # User Prompt Template
 def build_interpretation_prompt(
-    question: str, spread_type: str, cards_data: list
+    question: str, spread_type: str, cards_data: list, options: dict | None = None
 ) -> str:
     """
-    組裝 User Prompt
+    組裝 User Prompt（所有牌陣共用,依 SPREADS registry 產生差異）
 
     Args:
         question: 用戶問題
-        spread_type: 牌陣類型
+        spread_type: 牌陣類型（SPREADS 的 key）
         cards_data: 卡片資料列表
             [
                 {
@@ -192,13 +221,19 @@ def build_interpretation_prompt(
                     "keywords": ["勝利", "認可"]
                 }
             ]
+        options: 二選一牌陣的選項描述 {"a": "...", "b": "..."}
 
     Returns:
         完整的 User Prompt
     """
-    spread_info = SPREAD_DESCRIPTIONS.get(spread_type, {})
-    spread_name = spread_info.get("name", spread_type)
-    positions = spread_info.get("positions", {})
+    spread = SPREADS.get(spread_type)
+    spread_name = spread["name"] if spread else spread_type
+    positions = (
+        {p["key"]: f"{p['name']}({p['description']})" for p in spread["positions"]}
+        if spread
+        else {}
+    )
+    reading_focus = spread["reading_focus"] if spread else "牌與牌之間的關聯與故事線"
 
     # 組裝卡片資訊
     cards_text = ""
@@ -213,11 +248,30 @@ def build_interpretation_prompt(
 - 關鍵字:{keywords_str}
 """
 
+    # 二選一牌陣附上選項描述
+    options_text = ""
+    if options and options.get("a") and options.get("b"):
+        options_text = f"""
+【選項】
+選項 A:{options['a']}
+選項 B:{options['b']}
+"""
+
+    # JSON 範例依實際抽到的牌組裝(位置與張數隨牌陣不同)
+    example_cards = ",\n".join(
+        f"""    {{
+      "position": "{card['position']}",
+      "card_name": "{card['card_name']}({card['orientation']})",
+      "interpretation": "具體解讀內容..."
+    }}"""
+        for card in cards_data
+    )
+
     prompt = f"""請為以下塔羅占卜提供解讀:
 
 【問題】
 {question}
-
+{options_text}
 【牌陣】
 {spread_name}
 
@@ -226,7 +280,7 @@ def build_interpretation_prompt(
 
 請提供:
 1. 每張牌在其位置上的具體解讀
-2. 三張牌之間的關聯與故事線
+2. {reading_focus}
 3. 針對問題的整體建議
 4. 3-5 條關鍵洞察
 
@@ -234,21 +288,7 @@ def build_interpretation_prompt(
 {{
   "overall_summary": "整體解讀(200-500字)",
   "card_interpretations": [
-    {{
-      "position": "past",
-      "card_name": "權杖六(正位)",
-      "interpretation": "具體解讀內容..."
-    }},
-    {{
-      "position": "present",
-      "card_name": "吊人(逆位)",
-      "interpretation": "具體解讀內容..."
-    }},
-    {{
-      "position": "future",
-      "card_name": "錢幣皇后(正位)",
-      "interpretation": "具體解讀內容..."
-    }}
+{example_cards}
   ],
   "advice": "行動建議",
   "key_insights": [

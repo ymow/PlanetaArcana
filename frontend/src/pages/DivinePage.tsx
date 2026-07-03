@@ -1,7 +1,21 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { cardsApi, divinesApi, personasApi } from '@/services/api'
-import type { Card, DivineCreate, Persona } from '@/types'
+import { cardsApi, divinesApi, personasApi, spreadsApi } from '@/services/api'
+import type { Card, DivineCreate, Persona, SpreadInfo } from '@/types'
+
+// 牌陣資料載入失敗時的離線 fallback(維持原本的三牌陣流程)
+const FALLBACK_SPREAD: SpreadInfo = {
+  id: 'past_present_future',
+  name: '過去-現在-未來',
+  description: '經典三牌陣',
+  card_count: 3,
+  requires_options: false,
+  positions: [
+    { key: 'past', name: '過去', description: '影響問題的過去因素' },
+    { key: 'present', name: '現在', description: '當前的狀態與挑戰' },
+    { key: 'future', name: '未來', description: '可能的發展方向' },
+  ],
+}
 
 export default function DivinePage() {
   const navigate = useNavigate()
@@ -9,10 +23,16 @@ export default function DivinePage() {
   const [question, setQuestion] = useState('')
   const [personas, setPersonas] = useState<Persona[]>([])
   const [personaId, setPersonaId] = useState<string | null>(null)
+  const [spreads, setSpreads] = useState<SpreadInfo[]>([])
+  const [spreadId, setSpreadId] = useState('past_present_future')
+  const [optionA, setOptionA] = useState('')
+  const [optionB, setOptionB] = useState('')
   const [drawnCards, setDrawnCards] = useState<
     Array<{ card: Card; is_reversed: boolean }>
   >([])
   const [isLoading, setIsLoading] = useState(false)
+
+  const spread = spreads.find((s) => s.id === spreadId) ?? FALLBACK_SPREAD
 
   useEffect(() => {
     personasApi
@@ -25,11 +45,22 @@ export default function DivinePage() {
         // 角色列表載入失敗不擋占卜流程,後端會用預設角色
         console.error('載入解讀角色失敗:', error)
       })
+    spreadsApi
+      .getAll()
+      .then(setSpreads)
+      .catch((error) => {
+        // 牌陣列表載入失敗時 fallback 到經典三牌陣
+        console.error('載入牌陣失敗:', error)
+      })
   }, [])
 
   const handleQuestionSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!question.trim()) return
+    if (spread.requires_options && (!optionA.trim() || !optionB.trim())) {
+      alert('請填寫兩個選項的描述')
+      return
+    }
 
     setIsLoading(true)
     setStep('drawing')
@@ -38,9 +69,9 @@ export default function DivinePage() {
       // 取得所有卡片
       const allCards = await cardsApi.getAll({ limit: 78 })
 
-      // 隨機抽取 3 張不重複的牌
+      // 依牌陣張數隨機抽取不重複的牌
       const shuffled = [...allCards].sort(() => Math.random() - 0.5)
-      const selected = shuffled.slice(0, 3).map((card) => ({
+      const selected = shuffled.slice(0, spread.card_count).map((card) => ({
         card,
         is_reversed: Math.random() > 0.5, // 50% 機率逆位
       }))
@@ -64,22 +95,23 @@ export default function DivinePage() {
     setIsLoading(true)
 
     try {
-      const positions = ['past', 'present', 'future']
-
       const divineData: DivineCreate = {
         question_text: question,
         ...(personaId ? { persona_id: personaId } : {}),
-        spread_type: 'past_present_future',
+        spread_type: spread.id,
         spread_data: {
-          type: 'past_present_future',
+          type: spread.id,
           cards: drawnCards.map((item, index) => ({
-            position: positions[index],
+            position: spread.positions[index]?.key ?? `position_${index}`,
             position_order: index + 1,
             card_id: item.card.id,
             card_name: item.card.name,
             card_name_en: item.card.name_en,
             is_reversed: item.is_reversed,
           })),
+          ...(spread.requires_options
+            ? { options: { a: optionA.trim(), b: optionB.trim() } }
+            : {}),
         },
       }
 
@@ -119,6 +151,71 @@ export default function DivinePage() {
               onChange={(e) => setQuestion(e.target.value)}
               required
             />
+
+            {/* 選擇牌陣 */}
+            {spreads.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-lg font-bold text-tarot-light mb-3">
+                  選擇牌陣
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {spreads.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setSpreadId(s.id)}
+                      className={`p-4 rounded-lg border text-left transition ${
+                        spreadId === s.id
+                          ? 'border-tarot-gold bg-tarot-secondary/30 shadow-lg'
+                          : 'border-tarot-accent/30 bg-tarot-dark/30 hover:border-tarot-accent/60'
+                      }`}
+                    >
+                      <div className="font-bold text-tarot-light">
+                        {s.name}
+                        <span className="ml-2 text-xs text-tarot-accent">
+                          {s.card_count} 張牌
+                        </span>
+                      </div>
+                      <div className="text-xs text-tarot-accent mt-1">
+                        {s.description}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 二選一牌陣的選項描述 */}
+            {spread.requires_options && (
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-bold text-tarot-light mb-2">
+                    選項 A
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-3 bg-tarot-dark/50 border border-tarot-accent/30 rounded-lg text-tarot-light placeholder-tarot-accent/50 focus:outline-none focus:border-tarot-accent"
+                    placeholder="例如:留在現在的公司"
+                    value={optionA}
+                    onChange={(e) => setOptionA(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-tarot-light mb-2">
+                    選項 B
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-3 bg-tarot-dark/50 border border-tarot-accent/30 rounded-lg text-tarot-light placeholder-tarot-accent/50 focus:outline-none focus:border-tarot-accent"
+                    placeholder="例如:接受新的工作機會"
+                    value={optionB}
+                    onChange={(e) => setOptionB(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+            )}
 
             {/* 選擇解讀角色 */}
             {personas.length > 0 && (
@@ -184,14 +281,21 @@ export default function DivinePage() {
             <p className="text-tarot-light">{question}</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <div
+            className={`grid gap-6 mb-8 ${
+              drawnCards.length === 1
+                ? 'max-w-sm mx-auto'
+                : drawnCards.length === 2
+                  ? 'md:grid-cols-2'
+                  : 'md:grid-cols-3'
+            }`}
+          >
             {drawnCards.map((item, index) => {
-              const positions = [
-                { name: '過去', desc: '影響問題的過去因素' },
-                { name: '現在', desc: '當前的狀態與挑戰' },
-                { name: '未來', desc: '可能的發展方向' },
-              ]
-              const position = positions[index]
+              const position = spread.positions[index] ?? {
+                key: `position_${index}`,
+                name: `位置 ${index + 1}`,
+                description: '',
+              }
 
               return (
                 <div
@@ -203,7 +307,7 @@ export default function DivinePage() {
                       {position.name}
                     </h3>
                     <p className="text-sm text-tarot-accent">
-                      {position.desc}
+                      {position.description}
                     </p>
                   </div>
 

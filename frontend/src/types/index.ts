@@ -29,6 +29,23 @@ export interface CardInSpread {
 export interface SpreadData {
   type: string
   cards: CardInSpread[]
+  options?: { a: string; b: string }
+}
+
+// Spread registry Types
+export interface SpreadPosition {
+  key: string
+  name: string
+  description: string
+}
+
+export interface SpreadInfo {
+  id: string
+  name: string
+  description: string
+  card_count: number
+  requires_options: boolean
+  positions: SpreadPosition[]
 }
 
 export interface Divine {

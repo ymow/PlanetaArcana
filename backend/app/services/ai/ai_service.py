@@ -51,6 +51,7 @@ class AIService:
             question=divine.question_text,
             spread_type=divine.spread_type,
             cards_data=cards_data,
+            options=(divine.spread_data or {}).get("options"),
         )
 
         # 調用 Claude API（結構化輸出保證回應為合法 JSON）
@@ -83,6 +84,7 @@ class AIService:
             question=divine.question_text,
             spread_type=divine.spread_type,
             cards_data=cards_data,
+            options=(divine.spread_data or {}).get("options"),
         )
 
         final = None
@@ -333,6 +335,7 @@ class AIService:
                 question=divine.question_text,
                 spread_type=divine.spread_type,
                 cards_data=cards_data,
+                options=(divine.spread_data or {}).get("options"),
             )
             messages.append({"role": "user", "content": original_prompt})
 

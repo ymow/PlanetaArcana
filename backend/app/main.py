@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.api import auth, cards, daily_draws, divines, conversations, personas, quota
+from app.api import auth, cards, daily_draws, divines, conversations, personas, quota, spreads
 from app.db.database import Base, engine, ensure_schema
 
 # 建立資料表（create_all 只建新表;ensure_schema 補既有表的新欄位）
@@ -37,6 +37,7 @@ app.include_router(conversations.router, prefix=settings.API_V1_PREFIX)
 app.include_router(daily_draws.router, prefix=settings.API_V1_PREFIX)
 app.include_router(quota.router, prefix=settings.API_V1_PREFIX)
 app.include_router(personas.router, prefix=settings.API_V1_PREFIX)
+app.include_router(spreads.router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/")

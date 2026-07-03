@@ -22,7 +22,7 @@ from app.schemas.divine import (
 )
 from app.schemas.quota import ShareBonusResult
 from app.services.ai import AIService
-from app.services.ai.prompts import DEFAULT_PERSONA_ID, PERSONAS
+from app.services.ai.prompts import DEFAULT_PERSONA_ID, PERSONAS, SPREADS
 
 router = APIRouter(prefix="/divines", tags=["Divines"])
 
@@ -96,6 +96,25 @@ def create_divine(
         divine_data.persona_id = DEFAULT_PERSONA_ID
     elif divine_data.persona_id not in PERSONAS:
         raise HTTPException(status_code=422, detail="未知的解讀角色")
+
+    spread = SPREADS.get(divine_data.spread_type)
+    if not spread:
+        raise HTTPException(status_code=422, detail="未知的牌陣類型")
+
+    cards = (divine_data.spread_data or {}).get("cards", [])
+    if len(cards) != len(spread["positions"]):
+        raise HTTPException(
+            status_code=422,
+            detail=f"「{spread['name']}」需要 {len(spread['positions'])} 張牌",
+        )
+
+    if spread["requires_options"]:
+        options = (divine_data.spread_data or {}).get("options") or {}
+        if not (options.get("a") and options.get("b")):
+            raise HTTPException(
+                status_code=422,
+                detail=f"「{spread['name']}」需要提供兩個選項的描述",
+            )
 
     divine = Divine(**divine_data.model_dump(), user_id=current_user.id if current_user else None)
     db.add(divine)

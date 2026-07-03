@@ -15,6 +15,7 @@ from app.schemas.auth import AuthResponse, DevLoginRequest, GoogleAuthRequest, U
 from app.schemas.daily_draw import DailyDraw
 from app.schemas.quota import QuotaStatus, ShareBonusResult
 from app.schemas.persona import Persona
+from app.schemas.spread import SpreadInfo, SpreadPosition
 
 __all__ = [
     "Card",
@@ -36,4 +37,6 @@ __all__ = [
     "QuotaStatus",
     "ShareBonusResult",
     "Persona",
+    "SpreadInfo",
+    "SpreadPosition",
 ]

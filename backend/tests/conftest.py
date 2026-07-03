@@ -57,12 +57,14 @@ def mock_claude(monkeypatch):
     captured = {
         "conversation_messages": None,
         "generate_system_prompt": None,
+        "generate_user_prompt": None,
         "stream_system_prompt": None,
         "follow_up_system_prompt": None,
     }
 
     def fake_generate(self, system_prompt, user_prompt, output_schema=None):
         captured["generate_system_prompt"] = system_prompt
+        captured["generate_user_prompt"] = user_prompt
         return {
             "content": json.dumps(FAKE_INTERPRETATION, ensure_ascii=False),
             "tokens": dict(FAKE_TOKENS),

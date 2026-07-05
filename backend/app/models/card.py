@@ -25,6 +25,7 @@ class Card(Base):
     __tablename__ = "cards"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    slug = Column(String(100), nullable=False, unique=True, index=True)
     name = Column(String(100), nullable=False, unique=True)  # 中文名稱
     name_en = Column(String(100), nullable=False, unique=True)  # 英文名稱
     type = Column(String(20), nullable=False)  # major / minor

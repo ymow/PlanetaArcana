@@ -1,0 +1,58 @@
+[
+  {
+    "id": "canonical_echo",
+    "name": "Canonical Echo",
+    "medium": "controlled ink and mineral wash",
+    "line_language": "clear contour, restrained interior detail",
+    "palette_logic": "symbolic but limited; one dominant card color plus two support colors",
+    "figure_treatment": "human",
+    "symbol_treatment": "literal",
+    "composition_bias": "keep one to three anchor symbols readable",
+    "texture_language": "light paper grain, hand-touched but not distressed",
+    "border_system": "thin title border with rank/suit marks",
+    "typography_system": "small roman title, high contrast, no decorative excess",
+    "negative_constraints": ["no copied Rider-Waite composition", "no modern deck mimicry", "no fantasy armor clutter", "no illegible title"]
+  },
+  {
+    "id": "archetype_abstract",
+    "name": "Archetype Abstract",
+    "medium": "geometric color field and symbolic cut paper",
+    "line_language": "clean edges, large shapes, minimal contour",
+    "palette_logic": "emotion-led palettes with one tension color",
+    "figure_treatment": "silhouette",
+    "symbol_treatment": "abstract",
+    "composition_bias": "turn the card into a psychological force or relation",
+    "texture_language": "matte paper, slight layered shadow",
+    "border_system": "quiet border, card title integrated as label",
+    "typography_system": "plain small caps, strong spacing",
+    "negative_constraints": ["no generic mystic nebula", "no random symbols", "no living artist style reference", "no overdecorated gradients"]
+  },
+  {
+    "id": "ritual_object",
+    "name": "Ritual Object",
+    "medium": "crafted still life, metal, cloth, glass, paper",
+    "line_language": "object edges and tactile surface detail",
+    "palette_logic": "material-first palette from the selected objects",
+    "figure_treatment": "object_only",
+    "symbol_treatment": "material",
+    "composition_bias": "express the card through altar-like object relationships",
+    "texture_language": "tactile, precise, photographed-object logic without stock-photo mood",
+    "border_system": "object shadow inside a stable card frame",
+    "typography_system": "small engraved or stamped title",
+    "negative_constraints": ["no generic candle aesthetic", "no occult clutter", "no cultural sacred objects as decoration", "no unreadable object pile"]
+  },
+  {
+    "id": "emotional_weather",
+    "name": "Emotional Weather",
+    "medium": "atmospheric painting with symbolic anchors",
+    "line_language": "soft boundary, readable anchor silhouettes",
+    "palette_logic": "weather and season carry emotional tone",
+    "figure_treatment": "none",
+    "symbol_treatment": "surreal",
+    "composition_bias": "make the card meaning feel like a climate or pressure system",
+    "texture_language": "air, water, light, dust, pressure",
+    "border_system": "minimal border so atmosphere reaches the edge",
+    "typography_system": "quiet title below image window",
+    "negative_constraints": ["no purely pretty landscape", "no loss of anchor symbols", "no dark unreadable fog", "no stock wallpaper feel"]
+  }
+]

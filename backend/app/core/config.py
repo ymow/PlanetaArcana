@@ -21,15 +21,27 @@ class Settings(BaseSettings):
     APP_TIMEZONE: str = "Asia/Taipei"
 
     # CORS
-    CORS_ORIGINS: str = '["http://localhost:5173"]'
+    CORS_ORIGINS: str = '["http://localhost:5173", "http://127.0.0.1:5173"]'
 
     @property
     def cors_origins_list(self) -> List[str]:
         """將 CORS_ORIGINS 字串轉換為列表"""
         try:
-            return json.loads(self.CORS_ORIGINS)
+            origins = json.loads(self.CORS_ORIGINS)
         except (json.JSONDecodeError, TypeError):
-            return ["http://localhost:5173"]
+            origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+
+        if self.DEBUG:
+            local_pairs = {
+                "http://localhost:5173": "http://127.0.0.1:5173",
+                "http://127.0.0.1:5173": "http://localhost:5173",
+            }
+            for origin in list(origins):
+                paired_origin = local_pairs.get(origin)
+                if paired_origin and paired_origin not in origins:
+                    origins.append(paired_origin)
+
+        return origins
 
     # AI Settings
     AI_MODEL: str = "claude-sonnet-4-6"

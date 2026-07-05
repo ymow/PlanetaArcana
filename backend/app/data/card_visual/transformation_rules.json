@@ -1,0 +1,58 @@
+[
+  {
+    "id": "meaning_before_style",
+    "stage": "facet_selection",
+    "rule": "Select a meaning facet before selecting visual style.",
+    "rationale": "Style without meaning produces decorative tarot-like images rather than valid card variants.",
+    "checks": ["facet_id exists", "facet core_meaning is present", "facet motion and polarity are present"],
+    "prompt_effect": "Meaning terms must appear before style modifiers."
+  },
+  {
+    "id": "preserve_anchor_contract",
+    "stage": "symbol_selection",
+    "rule": "At least one anchor symbol or anchor relation must remain readable in every variant.",
+    "rationale": "Abstraction is allowed only if tarot recognizability survives.",
+    "checks": ["anchor symbols included", "meaning_link retained", "replacement does not erase relation"],
+    "prompt_effect": "Required symbols are separated from transformable symbols."
+  },
+  {
+    "id": "compose_relation_not_decoration",
+    "stage": "composition",
+    "rule": "Composition must express the card relation: threshold, exchange, fall, ascent, enclosure, duality, radiance, or fragmentation.",
+    "rationale": "The same symbol can mean different things depending on spatial relation and motion.",
+    "checks": ["composition atom selected", "spatial_rule present", "rhythm_rule present"],
+    "prompt_effect": "Composition terms are required in the generated prompt."
+  },
+  {
+    "id": "learn_from_decks_without_imitation",
+    "stage": "reference_study",
+    "rule": "Reference decks may inform lineage, market position, and transformation patterns, but must not be copied as style targets.",
+    "rationale": "The pipeline needs market intelligence and tarot literacy without derivative deck generation.",
+    "checks": ["source_urls recorded", "do_not_copy present", "semantic_lesson present"],
+    "prompt_effect": "Prompts avoid living-artist style references and direct deck imitation."
+  },
+  {
+    "id": "system_depth_matches_audience",
+    "stage": "scaffold_selection",
+    "rule": "The symbolic density of a variant must match its intended market position.",
+    "rationale": "Beginner-friendly decks need readability; advanced decks may carry deeper correspondence systems.",
+    "checks": ["market_position selected", "tarot_recognizability target chosen", "negative constraints present"],
+    "prompt_effect": "Style scaffolds define symbol treatment, palette logic, and negative constraints."
+  },
+  {
+    "id": "question_can_bias_but_not_replace_root",
+    "stage": "personalization",
+    "rule": "User question context may bias facet selection, but cannot change card identity or required anchor logic.",
+    "rationale": "Personalized AIGC should remain a variant of the drawn card, not become a custom oracle image.",
+    "checks": ["card_slug fixed", "facet belongs to card", "question_context only used as bias"],
+    "prompt_effect": "Question terms influence facet scoring, not the root card identity."
+  },
+  {
+    "id": "curation_closes_the_loop",
+    "stage": "curation",
+    "rule": "Generated variants must be scored before they can become curated card assets.",
+    "rationale": "A visually attractive image can still fail semantic accuracy, deck coherence, or originality safety.",
+    "checks": ["tarot_recognizability", "semantic_accuracy", "transform_discipline", "deck_coherence", "originality_safety"],
+    "prompt_effect": "Failed variants feed back into facet, symbol, composition, or scaffold revisions."
+  }
+]

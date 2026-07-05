@@ -1,0 +1,105 @@
+[
+  {
+    "id": "rider_waite_smith",
+    "name": "Rider-Waite-Smith Tarot",
+    "lineage": "narrative scenic tarot baseline",
+    "market_role": "Most influential modern reading grammar; default reference for many contemporary decks.",
+    "visual_grammar": ["scenic minors", "readable human gesture", "symbol-dense props", "clear narrative composition"],
+    "semantic_lesson": "Minor arcana can carry story, posture, weather, and spatial relation rather than only suit pips.",
+    "variation_lesson": "Extract actor, prop, gesture, threshold, weather, number, and relationship atoms; do not copy the scene.",
+    "product_lesson": "High recognizability reduces learning friction.",
+    "do_not_copy": ["specific Pamela Colman Smith compositions", "publisher recolors", "cardback or packaging design"],
+    "source_urls": [
+      "https://www.usgamesinc.com/rider-waite-tarot-card-deck.html",
+      "https://www.usgamesinc.com/Rider-Waite-Smith"
+    ]
+  },
+  {
+    "id": "tarot_de_marseille",
+    "name": "Tarot de Marseille",
+    "lineage": "historic playing-card and pip-pattern baseline",
+    "market_role": "Important historic pattern; useful for symbolic simplification and suit-pip logic.",
+    "visual_grammar": ["flat color", "hard contour", "woodcut logic", "pip repetition", "strong icon silhouettes"],
+    "semantic_lesson": "A card can be readable through rank, suit, icon, and layout even without full narrative scenes.",
+    "variation_lesson": "Use repetition, limited palette, and emblematic shape to create meaning without illustration overload.",
+    "product_lesson": "Good for advanced readers and collectors who value historical structure.",
+    "do_not_copy": ["specific restored deck scans", "publisher facsimile artwork", "historic imperfections as style gimmick"],
+    "source_urls": [
+      "https://en.wikipedia.org/wiki/Tarot_of_Marseilles"
+    ]
+  },
+  {
+    "id": "crowley_thoth",
+    "name": "Crowley Thoth Tarot",
+    "lineage": "esoteric symbolic system",
+    "market_role": "Advanced occult deck known for dense correspondences and visionary abstraction.",
+    "visual_grammar": ["esoteric symbols", "astrology and Qabalah references", "art-deco geometry", "color correspondences"],
+    "semantic_lesson": "Deep systems can encode a card through correspondence networks, not only literal illustration.",
+    "variation_lesson": "Only use correspondence logic when our own ontology explicitly supports it; avoid random occult decoration.",
+    "product_lesson": "Depth attracts advanced users but increases interpretation burden.",
+    "do_not_copy": ["Lady Frieda Harris artwork", "Crowley-specific symbolic arrangements", "unlicensed esoteric diagrams"],
+    "source_urls": [
+      "https://www.usgamesinc.com/crowley-thoth-tarot-deck-large.html",
+      "https://www.usgamesinc.com/crowley-thoth-tarot-deck-small.html"
+    ]
+  },
+  {
+    "id": "morgan_greer",
+    "name": "Morgan-Greer Tarot",
+    "lineage": "RWS-derived expressive close-crop route",
+    "market_role": "Readable classic deck route with more saturated, emotionally direct imagery.",
+    "visual_grammar": ["close crop", "saturated color", "large figures", "reduced background busyness"],
+    "semantic_lesson": "Cropping and color intensity can make classic meanings feel immediate without changing the root system.",
+    "variation_lesson": "Use framing as semantic emphasis; a crop can intensify a card without adding new symbols.",
+    "product_lesson": "Useful reference for making traditional decks feel vivid and accessible.",
+    "do_not_copy": ["figure poses", "specific color blocking", "border and title treatments"],
+    "source_urls": [
+      "https://www.usgamesinc.com/morgan-greer_tarot_deck.html"
+    ]
+  },
+  {
+    "id": "wild_unknown",
+    "name": "The Wild Unknown Tarot",
+    "lineage": "nature/animal symbolic reinterpretation",
+    "market_role": "Mass-market independent-to-publisher success showing non-human symbolism can still read as tarot.",
+    "visual_grammar": ["hand-drawn ink", "animal and natural-world imagery", "minimal palette", "selective color accents"],
+    "semantic_lesson": "Human figures are not required if animal/nature symbols preserve the archetypal relation.",
+    "variation_lesson": "Translate human drama into natural metaphor only when the replacement keeps the same relational geometry.",
+    "product_lesson": "A coherent world can become a strong deck identity.",
+    "do_not_copy": ["Kim Krans animal substitutions", "spare ink signature style", "specific guidebook language"],
+    "source_urls": [
+      "https://kimkrans.com/the-wild-unknown",
+      "https://www.amazon.com/Wild-Tarot-Guidebook-Official-Keepsake/dp/0062466593"
+    ]
+  },
+  {
+    "id": "modern_witch",
+    "name": "Modern Witch Tarot",
+    "lineage": "contemporary inclusive RWS reinterpretation",
+    "market_role": "Shows that market-friendly variation can modernize bodies, clothing, tools, and social context while preserving RWS readability.",
+    "visual_grammar": ["diverse contemporary figures", "fashion-forward styling", "bright color", "modern objects"],
+    "semantic_lesson": "A deck can keep traditional symbolic grammar while moving the social world into the present.",
+    "variation_lesson": "Modernization must serve card meaning, not become generic lifestyle illustration.",
+    "product_lesson": "Representation and immediate recognizability can both be selling points.",
+    "do_not_copy": ["Lisa Sterle character designs", "specific modernized RWS scenes", "fashion styling as direct imitation"],
+    "source_urls": [
+      "https://www.lisasterle.com/mwt",
+      "https://www.tarot.com/tarot/decks/modern-witch"
+    ]
+  },
+  {
+    "id": "light_seers",
+    "name": "The Light Seer's Tarot",
+    "lineage": "therapeutic contemporary archetype route",
+    "market_role": "Modern deck route centered on relatable characters, light/shadow psychology, and intuitive self-work.",
+    "visual_grammar": ["contemporary characters", "boho visual cues", "expressive emotion", "light/shadow framing"],
+    "semantic_lesson": "A market deck can foreground psychological accessibility while still reimagining traditional archetypes.",
+    "variation_lesson": "Emotional tone and shadow work can become explicit generation controls.",
+    "product_lesson": "Approachable depth matters for users who want self-reflection rather than occult study.",
+    "do_not_copy": ["Chris-Anne character treatments", "specific boho compositions", "brand language or titles"],
+    "source_urls": [
+      "https://www.hayhouse.com/light-seer-s-tarot-card-deck",
+      "https://lightseerstarot.com/"
+    ]
+  }
+]

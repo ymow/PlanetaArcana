@@ -1,6 +1,7 @@
 // Card Types
 export interface Card {
   id: string
+  slug?: string
   name: string
   name_en: string
   type: 'major' | 'minor'
@@ -14,6 +15,96 @@ export interface Card {
   symbolism?: string
   description?: string
   image_url?: string
+}
+
+// Card visual AIGC Types
+export interface CardVisualFacet {
+  id: string
+  card_slug: string
+  orientation: 'upright' | 'reversed' | 'both'
+  context: 'general' | 'love' | 'career' | 'self' | 'decision' | 'spiritual'
+  facet_name: string
+  core_meaning: string
+  emotional_tone: string[]
+  motion: string
+  polarity: string
+  question_bias?: string
+}
+
+export interface CardVisualStyleScaffold {
+  id: string
+  name: string
+  medium: string
+  line_language: string
+  palette_logic: string
+  figure_treatment: string
+  symbol_treatment: string
+  composition_bias: string
+  texture_language: string
+  border_system: string
+  typography_system: string
+  negative_constraints: string[]
+}
+
+export interface CardVisualCatalog {
+  facets: CardVisualFacet[]
+  symbols: Array<Record<string, unknown>>
+  compositions: Array<Record<string, unknown>>
+  style_scaffolds: CardVisualStyleScaffold[]
+}
+
+export interface GeneratedVisualPrompt {
+  subject_terms: string[]
+  meaning_terms: string[]
+  required_symbols: string[]
+  transformed_symbols: string[]
+  composition_terms: string[]
+  style_modifiers: string[]
+  quality_modifiers: string[]
+  negative_constraints: string[]
+  title_text?: string
+}
+
+export interface CardVisualPromptResponse {
+  card_slug: string
+  card_name: string
+  card_name_en: string
+  facet: CardVisualFacet
+  style_scaffold: CardVisualStyleScaffold
+  prompt: GeneratedVisualPrompt
+  final_prompt: string
+}
+
+export interface CardVisualCurationScores {
+  tarot_recognizability: number
+  semantic_accuracy: number
+  transform_discipline: number
+  deck_coherence: number
+  originality_safety: number
+}
+
+export interface CardVisualCurationResult extends Partial<CardVisualCurationScores> {
+  average_score?: number
+  recommended_status?: 'approved' | 'rejected' | 'needs_revision'
+  gate_notes?: string[]
+  reviewer_notes?: string
+}
+
+export interface CardVisualVariant {
+  id: string
+  card_id: string
+  card_slug: string
+  facet_id: string
+  style_scaffold_id: string
+  prompt_json: GeneratedVisualPrompt
+  final_prompt: string
+  image_url?: string
+  model?: string
+  seed?: number
+  curation_scores?: CardVisualCurationResult
+  status: 'draft' | 'generated' | 'approved' | 'rejected' | 'needs_revision'
+  created_at: string
+  updated_at?: string
 }
 
 // Divine (占卜) Types
@@ -46,6 +137,18 @@ export interface SpreadInfo {
   card_count: number
   requires_options: boolean
   positions: SpreadPosition[]
+}
+
+export interface SpreadRecommendation {
+  spread_id: string
+  spread_name: string
+  description: string
+  card_count: number
+  requires_options: boolean
+  positions: SpreadPosition[]
+  reason: string
+  confidence: 'high' | 'medium' | 'fallback'
+  matched_rule: string
 }
 
 export interface Divine {

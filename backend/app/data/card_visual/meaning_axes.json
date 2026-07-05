@@ -1,0 +1,82 @@
+[
+  {
+    "id": "card_identity",
+    "layer": "root",
+    "question": "What must remain stable so the card is still this card?",
+    "controls": ["arcana", "suit", "rank", "number", "canonical_name"],
+    "output_use": "Locks card identity before any visual variation is allowed.",
+    "examples": ["major_fool", "cups_two", "swords_ten"]
+  },
+  {
+    "id": "archetypal_function",
+    "layer": "meaning",
+    "question": "What human pattern or life movement does the card enact?",
+    "controls": ["threshold", "choice", "rupture", "exchange", "restoration", "burden", "completion"],
+    "output_use": "Chooses the core facet before symbols and style are selected.",
+    "examples": ["The Fool as threshold", "The Lovers as values choice", "The Tower as false structure breaking"]
+  },
+  {
+    "id": "elemental_logic",
+    "layer": "system",
+    "question": "For minor arcana, which suit force drives the card?",
+    "controls": {
+      "wands": "will, fire, action, initiative, creative force",
+      "cups": "emotion, water, bond, receptivity, imagination",
+      "swords": "mind, air, conflict, clarity, language, decision",
+      "pentacles": "body, earth, labor, money, material continuity"
+    },
+    "output_use": "Prevents minor-card visuals from becoming generic scenes without suit energy.",
+    "examples": ["Ace of Wands must feel igniting", "Two of Cups must feel reciprocal", "Ten of Swords must feel mentally final"]
+  },
+  {
+    "id": "numerological_stage",
+    "layer": "system",
+    "question": "What developmental stage does the number add?",
+    "controls": {
+      "ace": "source, seed, first impulse",
+      "2": "duality, exchange, polarity, relation",
+      "3": "growth, expression, first synthesis",
+      "4": "structure, containment, stability",
+      "5": "friction, disruption, test",
+      "6": "adjustment, harmony, public movement",
+      "7": "challenge, will, hidden test",
+      "8": "power, repetition, discipline, movement",
+      "9": "ripeness, solitude, near-completion",
+      "10": "completion, overflow, exhaustion, transition"
+    },
+    "output_use": "Adds structural meaning before selecting a composition atom.",
+    "examples": ["Two creates relation", "Ten creates saturation or finality"]
+  },
+  {
+    "id": "orientation_shadow",
+    "layer": "interpretation",
+    "question": "How does upright/reversed change the same root instead of creating a different card?",
+    "controls": ["flow", "block", "excess", "internalization", "delay", "distortion"],
+    "output_use": "Keeps reversed visuals related to the same card root while changing energy and motion.",
+    "examples": ["The Fool upright leaps; reversed misses the edge or ignores the warning"]
+  },
+  {
+    "id": "relational_geometry",
+    "layer": "composition",
+    "question": "What relation must be visible in the card layout?",
+    "controls": ["threshold", "exchange", "ascent", "fall", "enclosure", "duality", "fragmentation", "radiance"],
+    "output_use": "Turns meaning into spatial grammar before style is applied.",
+    "examples": ["The Lovers needs a choice axis", "Two of Cups needs equal exchange", "The Tower needs rupture through structure"]
+  },
+  {
+    "id": "symbol_contract",
+    "layer": "recognizability",
+    "question": "Which symbols are anchors, which may transform, and which should be avoided?",
+    "controls": ["anchor", "supporting", "optional", "forbidden"],
+    "output_use": "Defines how much visual abstraction is allowed without losing tarot readability.",
+    "examples": ["Tower needs struck structure", "Star needs guiding point and flow", "Fool needs threshold and traveler"]
+  },
+  {
+    "id": "market_position",
+    "layer": "product",
+    "question": "Who can read this deck, and what market expectation does the visual route satisfy?",
+    "controls": ["traditional_readable", "beginner_approachable", "collector_art", "abstract_advanced", "therapeutic_modern"],
+    "output_use": "Separates artistic variation from product-ready deck positioning.",
+    "examples": ["Canonical Echo for recognizability", "Archetype Abstract for advanced symbolic users"]
+  }
+]

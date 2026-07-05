@@ -3,6 +3,7 @@
 import json
 from sqlalchemy.orm import Session
 from app.models.card import Card
+from app.services.card_slug import build_card_slug_from_mapping
 
 
 def seed_tarot_cards(db: Session):
@@ -998,5 +999,8 @@ def get_tarot_cards_data():
     for card_data in pentacles_cards:
         card_data.update({"type": "minor", "suit": "pentacles"})
         cards.append(card_data)
+
+    for card_data in cards:
+        card_data["slug"] = build_card_slug_from_mapping(card_data)
 
     return cards

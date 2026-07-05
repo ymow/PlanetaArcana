@@ -39,6 +39,12 @@ export default function Header() {
               >
                 歷史記錄
               </Link>
+              <Link
+                to="/visual-lab"
+                className="text-tarot-light hover:text-tarot-accent transition"
+              >
+                視覺實驗室
+              </Link>
             </div>
             <LoginButton />
           </div>

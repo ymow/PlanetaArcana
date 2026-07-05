@@ -4,6 +4,7 @@ import DivinePage from './pages/DivinePage'
 import InterpretationPage from './pages/InterpretationPage'
 import HistoryPage from './pages/HistoryPage'
 import DailyDrawPage from './pages/DailyDrawPage'
+import CardVisualLabPage from './pages/CardVisualLabPage'
 import Header from './components/Header'
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
           <Route path="/divine" element={<DivinePage />} />
           <Route path="/divine/:id" element={<InterpretationPage />} />
           <Route path="/history" element={<HistoryPage />} />
+          <Route path="/visual-lab" element={<CardVisualLabPage />} />
         </Routes>
       </main>
     </div>

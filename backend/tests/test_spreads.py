@@ -44,6 +44,68 @@ def test_spreads_catalog(client):
     assert "reading_focus" not in by_id["single"]
 
 
+def test_recommend_single_for_short_guidance_question(client):
+    response = client.post(
+        "/api/spreads/recommend",
+        json={"question_text": "今天我需要什麼提醒?"},
+    )
+    assert response.status_code == 200
+
+    body = response.json()
+    assert body["spread_id"] == "single"
+    assert body["card_count"] == 1
+    assert body["requires_options"] is False
+    assert body["confidence"] == "medium"
+
+
+def test_recommend_two_choice_when_options_are_complete(client):
+    response = client.post(
+        "/api/spreads/recommend",
+        json={
+            "question_text": "我該怎麼選?",
+            "options": {"a": "留在現在的公司", "b": "接受新工作機會"},
+        },
+    )
+    assert response.status_code == 200
+
+    body = response.json()
+    assert body["spread_id"] == "two_choice"
+    assert body["requires_options"] is True
+    assert body["confidence"] == "high"
+    assert body["matched_rule"] == "complete_options"
+
+
+def test_recommend_two_choice_from_question_text(client):
+    response = client.post(
+        "/api/spreads/recommend",
+        json={"question_text": "我該留在現在的公司還是換工作?"},
+    )
+    assert response.status_code == 200
+
+    body = response.json()
+    assert body["spread_id"] == "two_choice"
+    assert body["requires_options"] is True
+    assert body["matched_rule"] == "two_choice_keywords"
+
+
+def test_recommend_timeline_as_default(client):
+    response = client.post(
+        "/api/spreads/recommend",
+        json={"question_text": "我接下來三個月的工作發展會受到哪些因素影響?"},
+    )
+    assert response.status_code == 200
+
+    body = response.json()
+    assert body["spread_id"] == "past_present_future"
+    assert body["card_count"] == 3
+    assert body["confidence"] == "fallback"
+
+
+def test_recommend_rejects_blank_question(client):
+    response = client.post("/api/spreads/recommend", json={"question_text": "   "})
+    assert response.status_code == 422
+
+
 def test_single_spread_full_flow(client, seeded_card, mock_claude):
     payload = _make_payload(seeded_card, "single", ["guidance"])
     created = client.post("/api/divines", json=payload)

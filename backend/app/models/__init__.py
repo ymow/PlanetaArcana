@@ -5,5 +5,15 @@ from app.models.api_usage import ApiUsage
 from app.models.user import User
 from app.models.daily_draw import DailyDraw
 from app.models.share_bonus import ShareBonus
+from app.models.generated_card_variant import GeneratedCardVariant
 
-__all__ = ["Card", "Divine", "Conversation", "ApiUsage", "User", "DailyDraw", "ShareBonus"]
+__all__ = [
+    "Card",
+    "Divine",
+    "Conversation",
+    "ApiUsage",
+    "User",
+    "DailyDraw",
+    "ShareBonus",
+    "GeneratedCardVariant",
+]

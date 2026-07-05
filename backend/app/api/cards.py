@@ -7,6 +7,7 @@ from typing import List, Optional
 from app.db.database import get_db
 from app.models.card import Card
 from app.schemas.card import Card as CardSchema, CardCreate, CardUpdate
+from app.services.card_slug import build_card_slug_from_mapping
 
 router = APIRouter(prefix="/cards", tags=["Cards"])
 
@@ -62,9 +63,17 @@ def create_card(card_data: CardCreate, db: Session = Depends(get_db)):
     - **card_data**: 卡片資料
     """
     # 檢查是否已存在
+    data = card_data.model_dump()
+    if not data.get("slug"):
+        data["slug"] = build_card_slug_from_mapping(data)
+
     existing = (
         db.query(Card)
-        .filter((Card.name == card_data.name) | (Card.name_en == card_data.name_en))
+        .filter(
+            (Card.name == data["name"])
+            | (Card.name_en == data["name_en"])
+            | (Card.slug == data["slug"])
+        )
         .first()
     )
 
@@ -72,7 +81,7 @@ def create_card(card_data: CardCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="該卡片已存在")
 
     # 建立新卡片
-    card = Card(**card_data.model_dump())
+    card = Card(**data)
     db.add(card)
     db.commit()
     db.refresh(card)

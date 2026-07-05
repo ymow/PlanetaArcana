@@ -104,6 +104,7 @@ def db_session():
 @pytest.fixture
 def seeded_card(db_session):
     card = Card(
+        slug="major_fool",
         name="愚者",
         name_en="The Fool",
         type="major",

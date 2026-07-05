@@ -5,6 +5,7 @@ from typing import Optional, List
 class CardBase(BaseModel):
     """Card 基礎 Schema"""
 
+    slug: Optional[str] = Field(None, description="穩定卡牌識別碼")
     name: str = Field(..., description="中文名稱")
     name_en: str = Field(..., description="英文名稱")
     type: str = Field(..., description="卡片類型：major 或 minor")
@@ -32,6 +33,7 @@ class CardCreate(CardBase):
 class CardUpdate(BaseModel):
     """更新 Card 的 Schema（所有欄位可選）"""
 
+    slug: Optional[str] = None
     name: Optional[str] = None
     name_en: Optional[str] = None
     type: Optional[str] = None

@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { cardsApi, divinesApi, personasApi, spreadsApi } from '@/services/api'
-import type { Card, DivineCreate, Persona, SpreadInfo } from '@/types'
+import type {
+  Card,
+  DivineCreate,
+  Persona,
+  SpreadInfo,
+  SpreadRecommendation,
+} from '@/types'
 
 // 牌陣資料載入失敗時的離線 fallback(維持原本的三牌陣流程)
 const FALLBACK_SPREAD: SpreadInfo = {
@@ -24,7 +30,10 @@ export default function DivinePage() {
   const [personas, setPersonas] = useState<Persona[]>([])
   const [personaId, setPersonaId] = useState<string | null>(null)
   const [spreads, setSpreads] = useState<SpreadInfo[]>([])
+  const [spreadMode, setSpreadMode] = useState<'auto' | 'manual'>('auto')
   const [spreadId, setSpreadId] = useState('past_present_future')
+  const [recommendation, setRecommendation] =
+    useState<SpreadRecommendation | null>(null)
   const [optionA, setOptionA] = useState('')
   const [optionB, setOptionB] = useState('')
   const [drawnCards, setDrawnCards] = useState<
@@ -32,7 +41,23 @@ export default function DivinePage() {
   >([])
   const [isLoading, setIsLoading] = useState(false)
 
-  const spread = spreads.find((s) => s.id === spreadId) ?? FALLBACK_SPREAD
+  const recommendedSpread: SpreadInfo | null =
+    recommendation && recommendation.spread_id === spreadId
+      ? {
+          id: recommendation.spread_id,
+          name: recommendation.spread_name,
+          description: recommendation.description,
+          card_count: recommendation.card_count,
+          requires_options: recommendation.requires_options,
+          positions: recommendation.positions,
+        }
+      : null
+  const spread =
+    spreads.find((s) => s.id === spreadId) ?? recommendedSpread ?? FALLBACK_SPREAD
+  const showOptionInputs =
+    spreadMode === 'manual'
+      ? spread.requires_options
+      : recommendation?.requires_options ?? false
 
   useEffect(() => {
     personasApi
@@ -57,21 +82,55 @@ export default function DivinePage() {
   const handleQuestionSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!question.trim()) return
-    if (spread.requires_options && (!optionA.trim() || !optionB.trim())) {
-      alert('請填寫兩個選項的描述')
-      return
-    }
 
     setIsLoading(true)
     setStep('drawing')
 
     try {
+      let activeSpread = spread
+
+      if (spreadMode === 'auto') {
+        const recommended = await spreadsApi.recommend({
+          question_text: question.trim(),
+          ...(optionA.trim() && optionB.trim()
+            ? { options: { a: optionA.trim(), b: optionB.trim() } }
+            : {}),
+        })
+        const nextSpread: SpreadInfo = {
+          id: recommended.spread_id,
+          name: recommended.spread_name,
+          description: recommended.description,
+          card_count: recommended.card_count,
+          requires_options: recommended.requires_options,
+          positions: recommended.positions,
+        }
+
+        setRecommendation(recommended)
+        setSpreadId(recommended.spread_id)
+        activeSpread =
+          spreads.find((s) => s.id === recommended.spread_id) ?? nextSpread
+
+        if (
+          recommended.requires_options &&
+          (!optionA.trim() || !optionB.trim())
+        ) {
+          setIsLoading(false)
+          setStep('question')
+          return
+        }
+      } else if (spread.requires_options && (!optionA.trim() || !optionB.trim())) {
+        alert('請填寫兩個選項的描述')
+        setIsLoading(false)
+        setStep('question')
+        return
+      }
+
       // 取得所有卡片
       const allCards = await cardsApi.getAll({ limit: 78 })
 
       // 依牌陣張數隨機抽取不重複的牌
       const shuffled = [...allCards].sort(() => Math.random() - 0.5)
-      const selected = shuffled.slice(0, spread.card_count).map((card) => ({
+      const selected = shuffled.slice(0, activeSpread.card_count).map((card) => ({
         card,
         is_reversed: Math.random() > 0.5, // 50% 機率逆位
       }))
@@ -148,7 +207,10 @@ export default function DivinePage() {
               rows={4}
               placeholder="例如：我的工作會有什麼發展？"
               value={question}
-              onChange={(e) => setQuestion(e.target.value)}
+              onChange={(e) => {
+                setQuestion(e.target.value)
+                setRecommendation(null)
+              }}
               required
             />
 
@@ -158,35 +220,94 @@ export default function DivinePage() {
                 <h3 className="text-lg font-bold text-tarot-light mb-3">
                   選擇牌陣
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {spreads.map((s) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => setSpreadId(s.id)}
-                      className={`p-4 rounded-lg border text-left transition ${
-                        spreadId === s.id
-                          ? 'border-tarot-gold bg-tarot-secondary/30 shadow-lg'
-                          : 'border-tarot-accent/30 bg-tarot-dark/30 hover:border-tarot-accent/60'
-                      }`}
-                    >
-                      <div className="font-bold text-tarot-light">
-                        {s.name}
-                        <span className="ml-2 text-xs text-tarot-accent">
-                          {s.card_count} 張牌
-                        </span>
-                      </div>
-                      <div className="text-xs text-tarot-accent mt-1">
-                        {s.description}
-                      </div>
-                    </button>
-                  ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSpreadMode('auto')
+                      setRecommendation(null)
+                    }}
+                    className={`p-4 rounded-lg border text-left transition ${
+                      spreadMode === 'auto'
+                        ? 'border-tarot-gold bg-tarot-secondary/30 shadow-lg'
+                        : 'border-tarot-accent/30 bg-tarot-dark/30 hover:border-tarot-accent/60'
+                    }`}
+                  >
+                    <div className="font-bold text-tarot-light">
+                      讓 PlanetaArcana 選
+                    </div>
+                    <div className="text-xs text-tarot-accent mt-1">
+                      依問題自動推薦單張、三牌或二選一牌陣
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSpreadMode('manual')
+                      setRecommendation(null)
+                    }}
+                    className={`p-4 rounded-lg border text-left transition ${
+                      spreadMode === 'manual'
+                        ? 'border-tarot-gold bg-tarot-secondary/30 shadow-lg'
+                        : 'border-tarot-accent/30 bg-tarot-dark/30 hover:border-tarot-accent/60'
+                    }`}
+                  >
+                    <div className="font-bold text-tarot-light">手動選擇</div>
+                    <div className="text-xs text-tarot-accent mt-1">
+                      自己指定要使用的牌陣
+                    </div>
+                  </button>
                 </div>
+
+                {spreadMode === 'manual' && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+                    {spreads.map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => {
+                          setSpreadId(s.id)
+                          setRecommendation(null)
+                        }}
+                        className={`p-4 rounded-lg border text-left transition ${
+                          spreadId === s.id
+                            ? 'border-tarot-gold bg-tarot-secondary/30 shadow-lg'
+                            : 'border-tarot-accent/30 bg-tarot-dark/30 hover:border-tarot-accent/60'
+                        }`}
+                      >
+                        <div className="font-bold text-tarot-light">
+                          {s.name}
+                          <span className="ml-2 text-xs text-tarot-accent">
+                            {s.card_count} 張牌
+                          </span>
+                        </div>
+                        <div className="text-xs text-tarot-accent mt-1">
+                          {s.description}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {spreadMode === 'auto' && recommendation && (
+                  <div className="mt-3 rounded-lg border border-tarot-accent/30 bg-tarot-dark/30 p-4">
+                    <div className="font-bold text-tarot-light">
+                      推薦牌陣：{recommendation.spread_name}
+                      <span className="ml-2 text-xs text-tarot-accent">
+                        {recommendation.card_count} 張牌
+                      </span>
+                    </div>
+                    <div className="text-sm text-tarot-accent mt-1">
+                      {recommendation.reason}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
             {/* 二選一牌陣的選項描述 */}
-            {spread.requires_options && (
+            {showOptionInputs && (
               <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-bold text-tarot-light mb-2">

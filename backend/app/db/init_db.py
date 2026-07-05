@@ -1,6 +1,6 @@
 """資料庫初始化腳本"""
 
-from app.db.database import SessionLocal, Base, engine
+from app.db.database import SessionLocal, Base, engine, ensure_schema
 from app.db.seed_cards import seed_tarot_cards
 
 
@@ -10,6 +10,7 @@ def init_db():
 
     # 建立所有資料表
     Base.metadata.create_all(bind=engine)
+    ensure_schema()
     print("✓ 資料表建立完成")
 
     # 填入塔羅牌資料

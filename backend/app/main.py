@@ -4,7 +4,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.api import auth, cards, daily_draws, divines, conversations, personas, quota, spreads
+from app.api import (
+    auth,
+    card_visuals,
+    cards,
+    conversations,
+    daily_draws,
+    divines,
+    personas,
+    quota,
+    spreads,
+)
 from app.db.database import Base, engine, ensure_schema
 
 # 建立資料表（create_all 只建新表;ensure_schema 補既有表的新欄位）
@@ -31,6 +41,7 @@ app.add_middleware(
 
 # 註冊路由
 app.include_router(cards.router, prefix=settings.API_V1_PREFIX)
+app.include_router(card_visuals.router, prefix=settings.API_V1_PREFIX)
 app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
 app.include_router(divines.router, prefix=settings.API_V1_PREFIX)
 app.include_router(conversations.router, prefix=settings.API_V1_PREFIX)

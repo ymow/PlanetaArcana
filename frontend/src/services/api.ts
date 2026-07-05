@@ -13,6 +13,11 @@ import type {
   ShareBonusResult,
   Persona,
   SpreadInfo,
+  SpreadRecommendation,
+  CardVisualCatalog,
+  CardVisualCurationScores,
+  CardVisualPromptResponse,
+  CardVisualVariant,
 } from '@/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
@@ -259,6 +264,72 @@ export const spreadsApi = {
         })
     }
     return spreadsCache
+  },
+
+  recommend: async (data: {
+    question_text: string
+    options?: { a: string; b: string }
+  }): Promise<SpreadRecommendation> => {
+    const response = await api.post('/spreads/recommend', data)
+    return response.data
+  },
+}
+
+// Card Visuals API
+export const cardVisualsApi = {
+  getCatalog: async (): Promise<CardVisualCatalog> => {
+    const response = await api.get('/card-visuals/catalog')
+    return response.data
+  },
+
+  composePrompt: async (data: {
+    card_slug: string
+    style_scaffold_id?: string
+    facet_id?: string
+    orientation?: 'upright' | 'reversed'
+    context?: 'general' | 'love' | 'career' | 'self' | 'decision' | 'spiritual'
+    question_context?: string
+  }): Promise<CardVisualPromptResponse> => {
+    const response = await api.post('/card-visuals/prompts', data)
+    return response.data
+  },
+
+  createVariant: async (data: {
+    card_slug: string
+    style_scaffold_id?: string
+    facet_id?: string
+    orientation?: 'upright' | 'reversed'
+    context?: 'general' | 'love' | 'career' | 'self' | 'decision' | 'spiritual'
+    question_context?: string
+    image_url?: string
+    model?: string
+    seed?: number
+    status?: 'draft' | 'generated' | 'approved' | 'rejected' | 'needs_revision'
+  }): Promise<CardVisualVariant> => {
+    const response = await api.post('/card-visuals/variants', data)
+    return response.data
+  },
+
+  getVariants: async (params?: {
+    card_slug?: string
+    status?: string
+  }): Promise<CardVisualVariant[]> => {
+    const response = await api.get('/card-visuals/variants', { params })
+    return response.data
+  },
+
+  curateVariant: async (
+    variantId: string,
+    data: {
+      scores: CardVisualCurationScores
+      reviewer_notes?: string
+    }
+  ): Promise<CardVisualVariant> => {
+    const response = await api.post(
+      `/card-visuals/variants/${variantId}/curation`,
+      data
+    )
+    return response.data
   },
 }
 

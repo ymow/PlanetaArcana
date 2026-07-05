@@ -32,6 +32,7 @@ def get_db():
 # create_all 只會建新表,不會對既有表加欄位。這裡列出後來新增的欄位,
 # 啟動時補上缺的（SQLite 專用的極簡 migration;正式引入 Alembic 後應移除）。
 _COLUMN_PATCHES = [
+    ("cards", "slug", "VARCHAR(100)"),
     ("divines", "persona_id", "VARCHAR(50)"),
 ]
 
@@ -54,3 +55,31 @@ def ensure_schema() -> None:
                     text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl_type}")
                 )
                 conn.commit()
+        _backfill_card_slugs(conn)
+
+
+def _backfill_card_slugs(conn) -> None:
+    """Backfill stable slugs for existing SQLite card rows."""
+    from sqlalchemy import text
+
+    from app.services.card_slug import build_card_slug
+
+    existing = {row[1] for row in conn.execute(text("PRAGMA table_info(cards)"))}
+    if "slug" not in existing:
+        return
+
+    rows = conn.execute(
+        text("SELECT id, type, name_en, suit, rank, slug FROM cards")
+    ).mappings()
+    for row in rows:
+        if row["slug"]:
+            continue
+        slug = build_card_slug(row["type"], row["name_en"], row["suit"], row["rank"])
+        conn.execute(
+            text("UPDATE cards SET slug = :slug WHERE id = :id"),
+            {"slug": slug, "id": row["id"]},
+        )
+    conn.execute(
+        text("CREATE UNIQUE INDEX IF NOT EXISTS ix_cards_slug_unique ON cards(slug)")
+    )
+    conn.commit()

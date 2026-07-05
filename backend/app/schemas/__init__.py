@@ -16,6 +16,16 @@ from app.schemas.daily_draw import DailyDraw
 from app.schemas.quota import QuotaStatus, ShareBonusResult
 from app.schemas.persona import Persona
 from app.schemas.spread import SpreadInfo, SpreadPosition
+from app.schemas.card_visual import (
+    CardVisualCurationRequest,
+    CardVisualCurationScores,
+    CardVisualPromptRequest,
+    CardVisualPromptResponse,
+    CardVisualVariant,
+    CardVisualVariantCreate,
+    CardVisualVariantUpdate,
+    GeneratedVisualPrompt,
+)
 
 __all__ = [
     "Card",
@@ -39,4 +49,12 @@ __all__ = [
     "Persona",
     "SpreadInfo",
     "SpreadPosition",
+    "CardVisualCurationRequest",
+    "CardVisualCurationScores",
+    "CardVisualPromptRequest",
+    "CardVisualPromptResponse",
+    "CardVisualVariant",
+    "CardVisualVariantCreate",
+    "CardVisualVariantUpdate",
+    "GeneratedVisualPrompt",
 ]
